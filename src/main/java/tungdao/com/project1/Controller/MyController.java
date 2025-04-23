@@ -1,9 +1,12 @@
 package tungdao.com.project1.Controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import tungdao.com.project1.entity.*;
 import tungdao.com.project1.repository.*;
+import tungdao.com.project1.service.UserService;
 
 import java.util.List;
 
@@ -56,9 +59,13 @@ public class MyController {
         return userRepository.findAll();
     }
 
-    @PostMapping("/users")
-    public User createUser(@RequestBody User user) {
-        return userRepository.save(user);
+    @Autowired
+    private UserService userService;
+
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<User> createUser(@RequestBody User user) {
+        return ResponseEntity.ok(userService.save(user));
     }
 
     // Tests
