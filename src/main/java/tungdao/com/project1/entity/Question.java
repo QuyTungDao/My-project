@@ -1,52 +1,80 @@
 package tungdao.com.project1.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
+
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "questions")
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"test", "passage", "audio", "correctAnswer", "responses"})
+@EqualsAndHashCode(exclude = {"test", "passage", "audio", "correctAnswer", "responses"})
+@NoArgsConstructor
+@AllArgsConstructor
 public class Question {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "question_id")
-    private Integer questionId;
+    private Integer id;
 
     @ManyToOne
-    @JoinColumn(name = "test_id")
+    @JoinColumn(name = "test_id", nullable = false)
+    @JsonIgnoreProperties({"questions", "readingPassages", "listeningAudios", "attempts"})
     private Test test;
 
-    @Column(name = "question_text", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "passage_id")
+    @JsonIgnoreProperties({"questions"})
+    private ReadingPassage passage;
+
+    @ManyToOne
+    @JoinColumn(name = "audio_id")
+    @JsonIgnoreProperties({"questions"})
+    private ListeningAudio audio;
+
+    @Column(name = "question_text", nullable = false, columnDefinition = "TEXT")
     private String questionText;
-
-    @Column(name = "correct_answer")
-    private String correctAnswer;
-
-    @Column(name = "max_score", nullable = false)
-    private Integer maxScore;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "question_type", nullable = false)
     private QuestionType questionType;
 
-    @Column(name = "options")
+    @Column(columnDefinition = "TEXT")
     private String options;
 
-    @Column(name = "blank_answer")
-    private String blankAnswer;
+    @Column(length = 100)
+    private String section;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "is_true_false_answer")
-    private TrueFalseNotGiven isTrueFalseAnswer;
+    @Column(name = "order_in_test")
+    private Integer orderInTest;
 
-    @Column(name = "matching_answer")
-    private String matchingAnswer;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
-    public enum QuestionType {
-        mcq, fill_in_the_blank, true_false_not_given, short_answer, matching
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @OneToOne(mappedBy = "question", cascade = CascadeType.ALL)
+    @JsonIgnoreProperties({"questions"})
+    private CorrectAnswer correctAnswer;
+
+    @OneToMany(mappedBy = "question")
+    private Set<StudentResponse> responses = new HashSet<>();
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        orderInTest = orderInTest == null ? 0 : orderInTest;
     }
 
-    public enum TrueFalseNotGiven {
-        TRUE,FALSE,NOT_GIVEN
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

@@ -1,6 +1,5 @@
-package tungdao.com.project1.DTO;
+package tungdao.com.project1.entity;
 
-import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor

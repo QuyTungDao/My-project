@@ -56,6 +56,17 @@
         </dependency>
 
         <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.15.2</version> <!-- Hoặc phiên bản mới nhất -->
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>2.15.2</version> <!-- Hoặc phiên bản mới nhất -->
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
@@ -91,12 +102,25 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                    <nonFilteredFileExtensions>
+                        <nonFilteredFileExtension>properties</nonFilteredFileExtension>
+                    </nonFilteredFileExtensions>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
+                            <version>1.18.34</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
@@ -113,27 +137,26 @@
                     </excludes>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
                 <version>1.12.0</version>
                 <configuration>
-                    <workingDirectory>frontend</workingDirectory>
-                    <installDirectory>target</installDirectory>
+                    <!-- Add default configuration that applies to all executions -->
+                    <workingDirectory>C:/Users/Admin/View/project</workingDirectory>
+                    <nodeVersion>v16.20.0</nodeVersion> <!-- Add Node.js version -->
+                    <npmVersion>8.19.4</npmVersion> <!-- Add npm version -->
                 </configuration>
                 <executions>
                     <execution>
-                        <id>install node and npm</id>
+                        <id>install-node-and-npm</id>
                         <goals>
                             <goal>install-node-and-npm</goal>
                         </goals>
-                        <configuration>
-                            <nodeVersion>v14.17.0</nodeVersion>
-                            <npmVersion>6.14.13</npmVersion>
-                        </configuration>
                     </execution>
                     <execution>
-                        <id>npm install</id>
+                        <id>npm-install</id>
                         <goals>
                             <goal>npm</goal>
                         </goals>
@@ -142,7 +165,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>npm run build</id>
+                        <id>npm-build</id>
                         <goals>
                             <goal>npm</goal>
                         </goals>
@@ -152,24 +175,29 @@
                     </execution>
                 </executions>
             </plugin>
+
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
                 <executions>
                     <execution>
                         <phase>generate-resources</phase>
-                        <configuration>
-                            <target>
-                                <copy todir="${project.build.directory}/classes/static">
-                                    <fileset dir="${project.basedir}/frontend/build"/>
-                                </copy>
-                            </target>
-                        </configuration>
                         <goals>
                             <goal>run</goal>
                         </goals>
+                        <configuration>
+                            <target>
+                                <copy todir="${project.build.directory}/classes/static">
+                                    <fileset dir="C:/Users/Admin/View/project/build/static" includes="**/*"/>
+                                </copy>
+                            </target>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
+
+
         </plugins>
 
 

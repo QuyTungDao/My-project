@@ -1,10 +1,11 @@
-package tungdao.com.project1.login_register;
+package tungdao.com.project1.service;
 
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import tungdao.com.project1.entity.User;
+import tungdao.com.project1.login_register.UserDetailsImpl;
 import tungdao.com.project1.repository.UserRepository;
 
 @Service

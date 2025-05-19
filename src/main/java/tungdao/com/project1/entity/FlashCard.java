@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "flashcards")
@@ -12,30 +14,45 @@ public class FlashCard {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "flashcard_id")
-    private Integer flashcardId;
+    private Integer id;
 
     @ManyToOne
     @JoinColumn(name = "creator_id")
     private User creator;
 
-    @Column(name = "word", nullable = false)
+    @Column(nullable = false, length = 50)
     private String word;
 
-    @Column(name = "meaning", nullable = false)
+    @Column(nullable = false)
     private String meaning;
 
-    @Column(name = "example_sentence")
+    @Column(name = "example_sentence", columnDefinition = "TEXT")
     private String exampleSentence;
 
-    @Column(name = "context")
+    @Column(columnDefinition = "TEXT")
     private String context;
 
-    @Column(name = "category")
+    @Column(length = 100)
     private String category;
 
-    @Column(name = "created_at", updatable = false)
+
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @OneToMany(mappedBy = "flashcard")
+    private Set<StudentFlashcardProgress> progressRecords = new HashSet<>();
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

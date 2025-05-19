@@ -1,32 +1,41 @@
 package tungdao.com.project1.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Table(name = "users")
 @Entity
+@Data
+@Getter
+@Setter
+@ToString(exclude = {"createdTests", "flashcards", "testAttempts", "responses", "gradedResponses"})
+@EqualsAndHashCode(exclude = {"createdTests", "flashcards", "testAttempts", "responses", "gradedResponses"})
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
-    private int userId;
+    private Integer id;
 
-    @Column(name = "full_name", nullable = false)
+    @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
 
-    @Column(name = "email", nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    @Column(name = "password", nullable = false)
+    @Column(nullable = false)
     private String password;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false)
-    private Role role;
+    @Convert(converter = UserRoleConverter.class)
+    @Column(nullable = false)
+    private UserRole role;
 
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
@@ -35,70 +44,39 @@ public class User {
     @Column(name = "is_active")
     private Boolean isActive;
 
-    public enum Role {
-        student, teacher, admin
+    @Column(name = "profile_picture")
+    private String profilePicture;
+
+    @Column(name = "last_login")
+    private LocalDateTime lastLogin;
+
+    @OneToMany(mappedBy = "creator")
+    @JsonManagedReference("user-tests")
+    private Set<Test> createdTests = new HashSet<>();
+
+    @OneToMany(mappedBy = "creator")
+    private Set<FlashCard> flashcards = new HashSet<>();
+
+    @OneToMany(mappedBy = "student")
+    @JsonManagedReference("user-attempts")
+    private Set<TestAttempt> testAttempts = new HashSet<>();
+
+    @OneToMany(mappedBy = "student")
+    @JsonManagedReference("user-responses")
+    private Set<StudentResponse> responses = new HashSet<>();
+
+    @OneToMany(mappedBy = "grader")
+    private Set<StudentResponse> gradedResponses = new HashSet<>();
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        isActive = isActive == null ? Boolean.TRUE : isActive;
     }
 
-    public String getPassword() {
-        return this.password;
-    }
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public int getUserId() {
-        return this.userId;
-    }
-
-    public void setUserId(int userId) {
-        this.userId = userId;
-    }
-
-    public String getFullName() {
-        return this.fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-
-    public String getEmail() {
-        return this.email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public Role getRole() {
-        return this.role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return this.createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return this.updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public Boolean getIsActive() {
-        return this.isActive;
-    }
-
-    public void setIsActive(Boolean isActive) {
-        this.isActive = isActive;
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

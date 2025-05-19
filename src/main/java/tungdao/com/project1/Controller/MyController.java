@@ -45,13 +45,31 @@ public class MyController {
     private StudentResponseRepository studentResponseRepository;
 
     @Autowired
-    private TestResultRepository testResultRepository;
+    private TestAttemptRepository testAttemptRepository;
 
     @Autowired
     private TestScoreMappingRepository testScoreMappingRepository;
 
     @Autowired
-    private AnswerRepository answerRepository;
+    private CorrectAnswerRepository correctAnswerRepository;
+
+    @Autowired
+    private ReadingPassageRepository readingPassageRepository;
+
+    @Autowired
+    private ListeningAudioRepository listeningAudioRepository;
+
+    @Autowired
+    private IeltsBandDescriptorRepository ieltsBandDescriptorRepository;
+
+    @Autowired
+    private SpeakingWritingCriteriaScoreRepository speakingWritingCriteriaScoreRepository;
+
+    @Autowired
+    private StudentProgressRepository studentProgressRepository;
+
+    @Autowired
+    private UserService userService;
 
     // Users
     @GetMapping("/users")
@@ -59,10 +77,7 @@ public class MyController {
         return userRepository.findAll();
     }
 
-    @Autowired
-    private UserService userService;
-
-    @PostMapping
+    @PostMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<User> createUser(@RequestBody User user) {
         return ResponseEntity.ok(userService.save(user));
@@ -81,12 +96,12 @@ public class MyController {
 
     // Flashcards
     @GetMapping("/flashcards")
-    public List<FlashCard> getAllFlashcards() {
+    public List<FlashCard> getAllFlashCards() {
         return flashcardRepository.findAll();
     }
 
     @PostMapping("/flashcards")
-    public FlashCard createFlashcard(@RequestBody FlashCard flashcard) {
+    public FlashCard createFlashCard(@RequestBody FlashCard flashcard) {
         return flashcardRepository.save(flashcard);
     }
 
@@ -125,24 +140,24 @@ public class MyController {
 
     // Student Responses
     @GetMapping("/student-responses")
-    public List<StudentResponses> getAllStudentResponses() {
+    public List<StudentResponse> getAllStudentResponses() {
         return studentResponseRepository.findAll();
     }
 
     @PostMapping("/student-responses")
-    public StudentResponses createStudentResponse(@RequestBody StudentResponses response) {
+    public StudentResponse createStudentResponse(@RequestBody StudentResponse response) {
         return studentResponseRepository.save(response);
     }
 
-    // Test Results
-    @GetMapping("/test-results")
-    public List<TestResult> getAllTestResults() {
-        return testResultRepository.findAll();
+    // Test Attempts
+    @GetMapping("/test-attempts")
+    public List<TestAttempt> getAllTestAttempts() {
+        return testAttemptRepository.findAll();
     }
 
-    @PostMapping("/test-results")
-    public TestResult createTestResult(@RequestBody TestResult result) {
-        return testResultRepository.save(result);
+    @PostMapping("/test-attempts")
+    public TestAttempt createTestAttempt(@RequestBody TestAttempt attempt) {
+        return testAttemptRepository.save(attempt);
     }
 
     // Test Score Mappings
@@ -156,15 +171,69 @@ public class MyController {
         return testScoreMappingRepository.save(mapping);
     }
 
-    // Answers
-    @GetMapping("/answers")
-    public List<Answer> getAllAnswers() {
-        return answerRepository.findAll();
+    // Correct Answers
+    @GetMapping("/correct-answers")
+    public List<CorrectAnswer> getAllCorrectAnswers() {
+        return correctAnswerRepository.findAll();
     }
 
-    @PostMapping("/answers")
-    public Answer createAnswer(@RequestBody Answer answer) {
-        return answerRepository.save(answer);
+    @PostMapping("/correct-answers")
+    public CorrectAnswer createCorrectAnswer(@RequestBody CorrectAnswer answer) {
+        return correctAnswerRepository.save(answer);
     }
 
+    // Reading Passages
+    @GetMapping("/reading-passages")
+    public List<ReadingPassage> getAllReadingPassages() {
+        return readingPassageRepository.findAll();
+    }
+
+    @PostMapping("/reading-passages")
+    public ReadingPassage createReadingPassage(@RequestBody ReadingPassage passage) {
+        return readingPassageRepository.save(passage);
+    }
+
+    // Listening Audio
+    @GetMapping("/listening-audio")
+    public List<ListeningAudio> getAllListeningAudio() {
+        return listeningAudioRepository.findAll();
+    }
+
+    @PostMapping("/listening-audio")
+    public ListeningAudio createListeningAudio(@RequestBody ListeningAudio audio) {
+        return listeningAudioRepository.save(audio);
+    }
+
+    // IELTS Band Descriptors
+    @GetMapping("/ielts-band-descriptors")
+    public List<IeltsBandDescriptor> getAllIeltsBandDescriptors() {
+        return ieltsBandDescriptorRepository.findAll();
+    }
+
+    @PostMapping("/ielts-band-descriptors")
+    public IeltsBandDescriptor createIeltsBandDescriptor(@RequestBody IeltsBandDescriptor descriptor) {
+        return ieltsBandDescriptorRepository.save(descriptor);
+    }
+
+    // Speaking Writing Criteria Scores
+    @GetMapping("/speaking-writing-criteria-scores")
+    public List<SpeakingWritingCriteriaScore> getAllSpeakingWritingCriteriaScores() {
+        return speakingWritingCriteriaScoreRepository.findAll();
+    }
+
+    @PostMapping("/speaking-writing-criteria-scores")
+    public SpeakingWritingCriteriaScore createSpeakingWritingCriteriaScore(@RequestBody SpeakingWritingCriteriaScore score) {
+        return speakingWritingCriteriaScoreRepository.save(score);
+    }
+
+    // Student Progress
+    @GetMapping("/student-progress")
+    public List<StudentProgress> getAllStudentProgress() {
+        return studentProgressRepository.findAll();
+    }
+
+    @PostMapping("/student-progress")
+    public StudentProgress createStudentProgress(@RequestBody StudentProgress progress) {
+        return studentProgressRepository.save(progress);
+    }
 }
