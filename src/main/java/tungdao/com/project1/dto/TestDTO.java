@@ -19,6 +19,7 @@ public class TestDTO {
     private Integer id;
     private Integer creatorId;
     private String creatorName;
+    private String creatorEmail;
     private String testName;
     private TestType testType;
     private String description;
@@ -29,6 +30,7 @@ public class TestDTO {
     private Boolean isPublished;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String creatorRole;
 
     // Không bao gồm danh sách questions, readingPassages, listeningAudios, attempts
     // để tránh vòng lặp vô tận

@@ -5,9 +5,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
+import tungdao.com.project1.entity.User;
 
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class JwtUtils {
@@ -19,6 +23,7 @@ public class JwtUtils {
     @Value("${app.jwtExpirationMs}")
     private int jwtExpirationMs;
 
+    // ✅ ENHANCED: Generate JWT token with role information
     public String generateJwtToken(Authentication authentication) {
         if (authentication == null) {
             logger.error("Authentication object is null - cannot generate token");
@@ -36,13 +41,20 @@ public class JwtUtils {
         logger.info("Generating JWT token for user: {}", userPrincipal.getUsername());
         logger.info("JWT expiration time set to: {} milliseconds", jwtExpirationMs);
 
+        // ✅ CRITICAL: Extract roles from authentication
+        List<String> roles = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+
+        logger.info("User roles: {}", roles);
+
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 
         logger.info("Token issue time: {}", now);
         logger.info("Token expiry time: {}", expiryDate);
 
-        // Chú ý: Đảm bảo rằng Secret key đủ dài (ít nhất 32 ký tự)
+        // Validate secret key
         if (jwtSecret == null || jwtSecret.trim().isEmpty()) {
             logger.error("JWT secret key is missing! Cannot generate token.");
             throw new IllegalStateException("JWT secret key is not configured");
@@ -52,20 +64,54 @@ public class JwtUtils {
             logger.warn("JWT secret key is too short! This may cause security issues. Recommended length is at least 32 characters.");
         }
 
+        // ✅ BUILD TOKEN WITH ENHANCED CLAIMS
         String token = Jwts.builder()
-                .setSubject(userPrincipal.getUsername())
+                .setSubject(userPrincipal.getUsername()) // Email as subject
+                .claim("userId", userPrincipal.getId()) // ✅ Add user ID
+                .claim("email", userPrincipal.getUsername()) // ✅ Add email explicitly
+                .claim("fullName", userPrincipal.getUsername()) // ✅ Add full name
+                .claim("role", roles.isEmpty() ? "STUDENT" : roles.get(0)) // ✅ Add primary role
+                .claim("authorities", roles) // ✅ Add all authorities
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(SignatureAlgorithm.HS512, jwtSecret)
                 .compact();
 
-        logger.info("JWT token generated successfully, length: {}", token.length());
+        logger.info("✅ JWT token generated successfully with role information");
+        logger.info("Token length: {}", token.length());
+        logger.info("Token contains: userId={}, email={}, role={}",
+                userPrincipal.getId(), userPrincipal.getUsername(), roles.isEmpty() ? "STUDENT" : roles.get(0));
         logger.debug("Token begins with: {}", token.substring(0, Math.min(10, token.length())));
 
         return token;
     }
 
-    // Thêm phương thức để tạo token từ username
+    // ✅ ENHANCED: Generate token from user entity with role
+    public String generateTokenFromUser(User user) {
+        logger.info("Generating JWT token from User entity: {}", user.getEmail());
+
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
+
+        String role = user.getRole() != null ? user.getRole().toString() : "STUDENT";
+
+        String token = Jwts.builder()
+                .setSubject(user.getEmail())
+                .claim("userId", user.getId())
+                .claim("email", user.getEmail())
+                .claim("fullName", user.getFullName())
+                .claim("role", role)
+                .claim("authorities", List.of("ROLE_" + role)) // Spring Security format
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                .compact();
+
+        logger.info("✅ JWT token generated for user: {} with role: {}", user.getEmail(), role);
+        return token;
+    }
+
+    // Existing method - keep as is
     public String generateTokenFromUsername(String username) {
         logger.info("Generating JWT token from username: {}", username);
 
@@ -104,6 +150,90 @@ public class JwtUtils {
         }
     }
 
+    // ✅ NEW: Extract user ID from token
+    public Integer getUserIdFromJwtToken(String token) {
+        try {
+            if (token == null || token.trim().isEmpty()) {
+                logger.error("Empty token provided");
+                return null;
+            }
+
+            Claims claims = Jwts.parser()
+                    .setSigningKey(jwtSecret)
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            Object userIdClaim = claims.get("userId");
+            if (userIdClaim != null) {
+                return Integer.valueOf(userIdClaim.toString());
+            }
+
+            logger.warn("No userId claim found in token");
+            return null;
+        } catch (Exception e) {
+            logger.error("Could not extract userId from token: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    // ✅ NEW: Extract role from token
+    public String getRoleFromJwtToken(String token) {
+        try {
+            if (token == null || token.trim().isEmpty()) {
+                logger.error("Empty token provided");
+                return null;
+            }
+
+            Claims claims = Jwts.parser()
+                    .setSigningKey(jwtSecret)
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            String role = claims.get("role", String.class);
+            logger.info("Role extracted from token: {}", role);
+            return role != null ? role : "STUDENT"; // Default to STUDENT
+        } catch (Exception e) {
+            logger.error("Could not extract role from token: {}", e.getMessage());
+            return "STUDENT"; // Default role
+        }
+    }
+
+    // ✅ NEW: Extract full name from token
+    public String getFullNameFromJwtToken(String token) {
+        try {
+            if (token == null || token.trim().isEmpty()) {
+                return null;
+            }
+
+            Claims claims = Jwts.parser()
+                    .setSigningKey(jwtSecret)
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            return claims.get("fullName", String.class);
+        } catch (Exception e) {
+            logger.error("Could not extract fullName from token: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    // ✅ NEW: Extract all claims for frontend use
+    public Claims getAllClaims(String token) {
+        try {
+            if (token == null || token.trim().isEmpty()) {
+                return null;
+            }
+
+            return Jwts.parser()
+                    .setSigningKey(jwtSecret)
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (Exception e) {
+            logger.error("Could not extract claims from token: {}", e.getMessage());
+            return null;
+        }
+    }
+
     public boolean validateJwtToken(String authToken) {
         try {
             logger.info("Validating JWT token");
@@ -123,6 +253,11 @@ public class JwtUtils {
             logger.info("Current date: {}", now);
             logger.info("Seconds until expiration: {}", (expirationDate.getTime() - now.getTime()) / 1000);
 
+            // ✅ ENHANCED: Log token claims for debugging
+            Claims tokenClaims = claims.getBody();
+            logger.debug("Token claims: userId={}, role={}, email={}",
+                    tokenClaims.get("userId"), tokenClaims.get("role"), tokenClaims.get("email"));
+
             // Thêm kiểm tra nếu token sắp hết hạn (còn dưới 5 phút)
             if (expirationDate.getTime() - now.getTime() < 300000) { // 5 phút = 300,000 ms
                 logger.warn("Token will expire soon (in less than 5 minutes)");
@@ -135,7 +270,7 @@ public class JwtUtils {
                 return false;
             }
 
-            logger.info("JWT token is valid");
+            logger.info("✅ JWT token is valid");
             return true;
         } catch (SignatureException e) {
             logger.error("Invalid JWT signature: {}", e.getMessage());

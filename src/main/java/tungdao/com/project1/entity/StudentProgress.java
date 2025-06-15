@@ -43,6 +43,16 @@ public class StudentProgress {
     @Column(name = "improvement_rate", precision = 4, scale = 2)
     private BigDecimal improvementRate;
 
+    // ===== CÁC CỘT MỚI CHO FLASHCARDS =====
+    @Column(name = "current_study_streak")
+    private Integer currentStudyStreak = 0; // Chuỗi ngày học hiện tại
+
+    @Column(name = "longest_study_streak")
+    private Integer longestStudyStreak = 0; // Chuỗi dài nhất
+
+    @Column(name = "total_flashcards_learned")
+    private Integer totalFlashcardsLearned = 0; // Tổng số đã học
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -57,10 +67,20 @@ public class StudentProgress {
         targetBandScore = targetBandScore == null ? new BigDecimal("0.0") : targetBandScore;
         testsCompleted = testsCompleted == null ? 0 : testsCompleted;
         improvementRate = improvementRate == null ? new BigDecimal("0.00") : improvementRate;
+
+        // Flashcard fields
+        if (currentStudyStreak == null) currentStudyStreak = 0;
+        if (longestStudyStreak == null) longestStudyStreak = 0;
+        if (totalFlashcardsLearned == null) totalFlashcardsLearned = 0;
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    // Enum cho skill types (đã bổ sung FLASHCARDS)
+    public enum SkillProgressType {
+        LISTENING, READING, WRITING, SPEAKING, OVERALL, FLASHCARDS
     }
 }

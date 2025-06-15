@@ -7,16 +7,13 @@ import org.springframework.stereotype.Repository;
 import tungdao.com.project1.entity.TestScoreMapping;
 import tungdao.com.project1.entity.TestScoreMappingType;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
-
 @Repository
 public interface TestScoreMappingRepository extends JpaRepository<TestScoreMapping, TestScoreMappingType> {
 
-    @Query("SELECT m FROM TestScoreMapping m WHERE m.testType = :testType " +
-            "AND :correctAnswers BETWEEN m.correctAnswersMin AND m.correctAnswersMax")
+    @Query("SELECT tsm FROM TestScoreMapping tsm WHERE tsm.testType = :testType " +
+            "AND :correctAnswers >= tsm.correctAnswersMin " +
+            "AND :correctAnswers <= tsm.correctAnswersMax")
     TestScoreMapping findByTestTypeAndCorrectAnswersRange(
-            @Param("testType") TestScoreMappingType testType,  // Thay đổi từ String sang TestScoreMappingType
-            @Param("correctAnswers") Integer correctAnswers
-    );}
+            @Param("testType") TestScoreMappingType testType,
+            @Param("correctAnswers") Integer correctAnswers);
+}

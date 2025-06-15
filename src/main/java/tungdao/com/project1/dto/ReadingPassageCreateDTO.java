@@ -12,7 +12,18 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReadingPassageCreateDTO {
+    private Integer id;
     private String title;
     private String content;
     private Integer orderInTest = 1;
+
+    @Override
+    public String toString() {
+        return "ReadingPassageCreateDTO{" +
+                "id=" + id +
+                ", title='" + title + '\'' +
+                ", orderInTest=" + orderInTest +
+                ", contentLength=" + (content != null ? content.length() : 0) +
+                '}';
+    }
 }

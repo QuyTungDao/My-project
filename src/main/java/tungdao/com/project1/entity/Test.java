@@ -61,21 +61,25 @@ public class Test {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "test", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "test", cascade = CascadeType.ALL,fetch = FetchType.LAZY)
     @JsonManagedReference("test-passages")
     private Set<ReadingPassage> readingPassages = new HashSet<>();
 
-    @OneToMany(mappedBy = "test", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "test", cascade = CascadeType.ALL,fetch = FetchType.LAZY)
     @JsonManagedReference("test-audios")
     private Set<ListeningAudio> listeningAudios = new HashSet<>();
 
-    @OneToMany(mappedBy = "test", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "test", cascade = CascadeType.ALL,fetch = FetchType.LAZY)
     @JsonManagedReference("test-questions")
     private Set<Question> questions = new HashSet<>();
 
-    @OneToMany(mappedBy = "test")
+    @OneToMany(mappedBy = "test", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference("test-attempts")
     private Set<TestAttempt> attempts = new HashSet<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private User createdBy;
 
     @PrePersist
     protected void onCreate() {

@@ -22,23 +22,26 @@ public class Question {
     @Column(name = "question_id")
     private Integer id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "test_id", nullable = false)
     @JsonIgnoreProperties({"questions", "readingPassages", "listeningAudios", "attempts"})
     private Test test;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "passage_id")
     @JsonIgnoreProperties({"questions"})
     private ReadingPassage passage;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "audio_id")
     @JsonIgnoreProperties({"questions"})
     private ListeningAudio audio;
 
     @Column(name = "question_text", nullable = false, columnDefinition = "TEXT")
     private String questionText;
+
+    @Column(name = "question_set_instructions", columnDefinition = "TEXT")
+    private String questionSetInstructions;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "question_type", nullable = false)
@@ -65,6 +68,19 @@ public class Question {
 
     @OneToMany(mappedBy = "question")
     private Set<StudentResponse> responses = new HashSet<>();
+
+    @Column(name = "context", columnDefinition = "TEXT")
+    private String context;
+
+    // ✅ ONLY fields that exist in DB
+    @Column(name = "speaking_part")
+    private Integer speakingPart;
+
+    @Column(name = "task_type", length = 50)
+    private String taskType;
+
+    @Column(name = "visual_material_path", length = 500)
+    private String visualMaterialPath;
 
     @PrePersist
     protected void onCreate() {

@@ -1,5 +1,6 @@
 package tungdao.com.project1.config;
 
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -9,49 +10,28 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-
-import java.util.Arrays;
-
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    // Cấu hình CORS cho WebMvc
+    // ✅ TEMPORARY FIX: Disable credentials to avoid CORS conflict
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:3000", "http://localhost:3001", "http://localhost:3003")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedOrigins("*")  // Use allowedOrigins with credentials=false
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH")
                 .allowedHeaders("*")
-                .allowCredentials(true)
-                .exposedHeaders("Authorization")
-                .maxAge(3600);
+                .allowCredentials(false)  // Temporarily disable
+                .exposedHeaders("Authorization", "Content-Type", "Accept")
+                .maxAge(86400);
     }
 
-    // Cung cấp thêm một CorsFilter bean để đảm bảo CORS hoạt động đúng
-    @Bean
-    public CorsFilter corsFilter() {
-        CorsConfiguration corsConfiguration = new CorsConfiguration();
-        corsConfiguration.setAllowCredentials(true);
-        corsConfiguration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:3001", "http://localhost:3003"));
-        corsConfiguration.setAllowedHeaders(Arrays.asList("Origin", "Access-Control-Allow-Origin", "Content-Type",
-                "Accept", "Authorization", "Origin, Accept", "X-Requested-With",
-                "Access-Control-Request-Method", "Access-Control-Request-Headers"));
-        corsConfiguration.setExposedHeaders(Arrays.asList("Origin", "Content-Type", "Accept", "Authorization",
-                "Access-Control-Allow-Origin", "Access-Control-Allow-Credentials"));
-        corsConfiguration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-
-        UrlBasedCorsConfigurationSource urlBasedCorsConfigurationSource = new UrlBasedCorsConfigurationSource();
-        urlBasedCorsConfigurationSource.registerCorsConfiguration("/**", corsConfiguration);
-
-        return new CorsFilter(urlBasedCorsConfigurationSource);
-    }
+    // ✅ REMOVED: CorsFilter bean to avoid conflicts
+    // @Bean
+    // public CorsFilter corsFilter() { ... }
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
@@ -72,6 +52,22 @@ public class WebConfig implements WebMvcConfigurer {
         mapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
         // Bỏ qua các thuộc tính không xác định trong quá trình deserialization
         mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+
+        try {
+            // ✅ FIX: Tăng giới hạn string length cho Base64 audio data
+            StreamReadConstraints constraints = StreamReadConstraints.builder()
+                    .maxStringLength(100_000_000) // 100MB limit thay vì 20MB mặc định
+                    .maxNumberLength(10000)
+                    .maxNestingDepth(2000)
+                    .build();
+
+            mapper.getFactory().setStreamReadConstraints(constraints);
+
+            System.out.println("✅ Jackson ObjectMapper configured with increased string length limit: 100MB");
+        } catch (Exception e) {
+            System.err.println("❌ Failed to configure Jackson constraints: " + e.getMessage());
+            e.printStackTrace();
+        }
 
         return mapper;
     }

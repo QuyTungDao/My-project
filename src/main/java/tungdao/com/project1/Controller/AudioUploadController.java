@@ -23,7 +23,7 @@ public class AudioUploadController {
     @Value("${app.upload.dir:${user.home}/uploads/audio}")
     private String uploadDir;
 
-    @PostMapping("/upload-audio")
+    @PostMapping("/upload")
     public ResponseEntity<?> uploadAudioFile(@RequestParam("file") MultipartFile file) {
         try {
             // Tạo thư mục lưu trữ nếu chưa tồn tại
@@ -56,6 +56,51 @@ public class AudioUploadController {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Lỗi khi upload file: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/validate-file")
+    public ResponseEntity<?> validateAudioFile(@RequestParam("file") MultipartFile file) {
+        try {
+            System.out.println("=== VALIDATING AUDIO FILE ===");
+            System.out.println("Original filename: " + file.getOriginalFilename());
+            System.out.println("Content type: " + file.getContentType());
+            System.out.println("File size: " + file.getSize() + " bytes");
+
+            // ✅ VALIDATE FILE TYPE
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("audio/")) {
+                return ResponseEntity.badRequest()
+                        .body("File không phải là audio. Content-Type: " + contentType);
+            }
+
+            // ✅ VALIDATE FILE SIZE (limit 50MB)
+            long maxSize = 50 * 1024 * 1024; // 50MB
+            if (file.getSize() > maxSize) {
+                return ResponseEntity.badRequest()
+                        .body("File quá lớn. Kích thước tối đa: 50MB");
+            }
+
+            // ✅ CONVERT TO BASE64 and validate
+            byte[] audioBytes = file.getBytes();
+            String base64Data = java.util.Base64.getEncoder().encodeToString(audioBytes);
+            String dataUrl = "data:" + contentType + ";base64," + base64Data;
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("isValid", true);
+            response.put("fileName", file.getOriginalFilename());
+            response.put("contentType", contentType);
+            response.put("fileSize", file.getSize());
+            response.put("base64Data", dataUrl);
+            response.put("base64Length", base64Data.length());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("Error validating audio: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi khi validate audio: " + e.getMessage());
         }
     }
 }

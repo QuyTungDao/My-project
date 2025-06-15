@@ -59,10 +59,11 @@ public class TestAttempt {
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "attempt", cascade = CascadeType.ALL)
+    @JsonManagedReference("attempt-responses")
     private Set<StudentResponse> responses = new HashSet<>();
 
     @OneToMany(mappedBy = "attempt", cascade = CascadeType.ALL)
-    @JsonManagedReference("attempt-responses")
+    @JsonManagedReference("attempt-reports")
     private Set<PerformanceReport> reports = new HashSet<>();
 
     @PrePersist

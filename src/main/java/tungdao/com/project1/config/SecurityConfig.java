@@ -47,10 +47,7 @@ public class SecurityConfig {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
-
-        // Bật debug - hiển thị các lỗi chi tiết khi xác thực
         authProvider.setHideUserNotFoundExceptions(false);
-
         return authProvider;
     }
 
@@ -62,31 +59,89 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Cho phép truy cập không cần xác thực
+                        // ✅ CORS preflight requests - MUST be first
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // ✅ Error handling
+                        .requestMatchers("/error").permitAll()
+
+                        // ✅ PUBLIC: Authentication endpoints (login/register)
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // Các endpoint GET cho test không yêu cầu xác thực
-                        .requestMatchers(HttpMethod.GET, "/api/test/**").permitAll()
-                        // Endpoint upload audio không yêu cầu xác thực
-                        .requestMatchers("/api/test/upload-audio").permitAll()
+                        // ===== FLASHCARD ENDPOINTS =====
 
-                        // YÊU CẦU XÁC THỰC CHO CÁC ENDPOINT TẠO BÀI THI
-                        .requestMatchers(HttpMethod.POST, "/api/test/create", "/test/create").authenticated()
-                        // YÊU CẦU XÁC THỰC CHO CÁC ENDPOINT NỘP BÀI THI
+                        // ✅ PUBLIC: Flashcard browsing (anyone can view available flashcards and sets)
+                        .requestMatchers(HttpMethod.GET, "/api/flashcards/public").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/flashcards/sets").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/flashcards/sets/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/flashcards/search").permitAll()
+
+                        // ✅ AUTHENTICATED: Flashcard learning (any logged-in user can study)
+                        .requestMatchers(HttpMethod.GET, "/api/flashcards/study/today").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/flashcards/rate").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/flashcards/statistics").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/flashcards/my-cards").authenticated()
+
+                        // ✅ TEACHER+ ONLY: Creating and managing flashcards
+                        .requestMatchers(HttpMethod.POST, "/api/flashcards/create").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/flashcards/**").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/flashcards/**").hasAnyRole("TEACHER", "ADMIN")
+
+                        // ===== TEST ENDPOINTS =====
+
+                        // ✅ PUBLIC: Test browsing (anyone can view available tests)
+                        .requestMatchers(HttpMethod.GET, "/api/test").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/test/search").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/test/{id}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/test/correct-answer/{questionId}").permitAll()
+
+                        // ✅ AUTHENTICATED: Taking tests (any logged-in user can take tests)
                         .requestMatchers(HttpMethod.POST, "/api/test/attempts").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/test/validate-audio-response").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/test/attempts/{attemptId}/audio-stats").authenticated()
 
-                        // Các endpoint khác trong /api/test/ cho phép truy cập
-                        .requestMatchers("/api/test/**").permitAll()
+                        // ✅ AUTHENTICATED: Test attempt results (users can view their own results)
+                        .requestMatchers("/api/test-attempts/**").authenticated()
 
-                        // Cho phép /api/tests/** và /api/test-attempts/**
-                        .requestMatchers("/api/tests/**").permitAll()
-                        .requestMatchers("/api/test-attempts/**").permitAll()
+                        // ✅ TEACHER+ ONLY: Creating and managing tests
+                        .requestMatchers(HttpMethod.POST, "/api/test/create").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/test/{id}/update").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/test/{id}/delete").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/test/tests/{testId}/questions/batch").hasAnyRole("TEACHER", "ADMIN")
 
-                        // Các endpoint khác yêu cầu xác thực
+                        // ✅ TEACHER+ ONLY: Test management and file operations
+                        .requestMatchers(HttpMethod.POST, "/api/test/upload").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/test/upload-audio").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/test/validate-file").hasAnyRole("TEACHER", "ADMIN")
+
+                        // ✅ TEACHER+ ONLY: Getting own tests and management endpoints
+                        .requestMatchers(HttpMethod.GET, "/api/test/my-tests").hasAnyRole("TEACHER", "ADMIN")
+
+                        // ✅ ADMIN ONLY: Administrative functions
+                        .requestMatchers(HttpMethod.GET, "/api/test/admin/all-tests").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // ✅ ADMIN ONLY: User management (if you have these endpoints)
+                        .requestMatchers(HttpMethod.GET, "/api/users/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/users/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/users/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasRole("ADMIN")
+
+                        // ===== MVC VIEWS =====
+
+                        // ✅ AUTHENTICATED: Flashcard MVC views
+                        .requestMatchers("/flashcards/**").authenticated()
+
+                        // ✅ AUTHENTICATED: All other test-related endpoints require login
+                        .requestMatchers("/api/test/**").authenticated()
+                        .requestMatchers("/api/tests/**").authenticated()
+
+                        // ✅ DEFAULT: All other requests require authentication
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider());
 
+        // ✅ Add JWT filter before username/password authentication filter
         http.addFilterBefore(authenticationJwtTokenFilter(),
                 UsernamePasswordAuthenticationFilter.class);
 
