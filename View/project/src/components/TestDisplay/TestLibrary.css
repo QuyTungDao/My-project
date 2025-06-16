@@ -1,0 +1,60 @@
+.test-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+@media (min-width: 768px) {
+    .test-list {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .test-list {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.test-item {
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.test-title {
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.test-info {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.test-tags {
+    margin: 8px 0;
+}
+
+.test-tags span {
+    color: #3b82f6;
+    margin-right: 4px;
+}
+
+.detail-button {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 8px;
+}
+
+.detail-button:hover {
+    background-color: #2563eb;
+}

@@ -1,0 +1,585 @@
+/* File: src/components/CreateExam/EnhancedAudioUploader.css */
+/* CSS cho Enhanced Audio Uploader component */
+
+.enhanced-audio-uploader {
+    width: 100%;
+    margin: 10px 0;
+}
+
+.upload-area {
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #fafafa;
+    position: relative;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.upload-area:hover {
+    border-color: #007cba;
+    background: #f0f8ff;
+}
+
+.upload-area.drag-over {
+    border-color: #007cba;
+    background: #e6f3ff;
+    transform: scale(1.02);
+}
+
+.upload-area.has-file {
+    border-style: solid;
+    border-color: #28a745;
+    background: #f8f9fa;
+}
+
+/* Upload placeholder styles */
+.upload-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.upload-icon {
+    font-size: 48px;
+    opacity: 0.6;
+}
+
+.upload-text {
+    color: #666;
+    line-height: 1.5;
+}
+
+.upload-text strong {
+    color: #333;
+    font-size: 16px;
+}
+
+/* Audio info display */
+.audio-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+    max-width: 400px;
+}
+
+.audio-icon {
+    font-size: 32px;
+    flex-shrink: 0;
+}
+
+.audio-details {
+    flex: 1;
+    text-align: left;
+}
+
+.filename {
+    font-weight: bold;
+    color: #333;
+    font-size: 14px;
+    margin-bottom: 5px;
+    word-break: break-word;
+}
+
+.file-meta {
+    display: flex;
+    gap: 15px;
+    font-size: 12px;
+    color: #666;
+}
+
+.filesize,
+.duration {
+    background: #e9ecef;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.change-btn {
+    background: #007cba;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.change-btn:hover:not(:disabled) {
+    background: #005a8b;
+}
+
+.change-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* Upload progress */
+.upload-progress {
+    position: absolute;
+    bottom: 10px;
+    left: 20px;
+    right: 20px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #007cba, #28a745);
+    transition: width 0.3s ease;
+    border-radius: 3px;
+}
+
+.progress-text {
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+    font-weight: 500;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .upload-area {
+        padding: 15px;
+        min-height: 100px;
+    }
+
+    .audio-info {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+
+    .audio-details {
+        text-align: center;
+    }
+
+    .file-meta {
+        justify-content: center;
+    }
+
+    .upload-icon {
+        font-size: 36px;
+    }
+
+    .audio-icon {
+        font-size: 24px;
+    }
+}
+
+/* Loading state */
+.upload-area.uploading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.upload-area.uploading .upload-placeholder {
+    opacity: 0.5;
+}
+
+/* Error states */
+.upload-area.error {
+    border-color: #dc3545;
+    background: #fff5f5;
+}
+
+.upload-area.error .upload-text {
+    color: #dc3545;
+}
+
+/* Success states */
+.upload-area.success {
+    border-color: #28a745;
+    background: #f8fff8;
+}
+
+/* Focus states for accessibility */
+.upload-area:focus {
+    outline: 2px solid #007cba;
+    outline-offset: 2px;
+}
+
+/* Animation for drag and drop */
+@keyframes bounce {
+    0%, 20%, 53%, 80%, 100% {
+        transform: translate3d(0,0,0);
+    }
+    40%, 43% {
+        transform: translate3d(0, -10px, 0);
+    }
+    70% {
+        transform: translate3d(0, -5px, 0);
+    }
+    90% {
+        transform: translate3d(0, -2px, 0);
+    }
+}
+
+.upload-area.drag-over .upload-icon {
+    animation: bounce 1s ease-in-out;
+}
+
+/* Thêm vào file EnhancedAudioUploader.css */
+
+/* Cải thiện layout cho audio actions */
+.audio-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.change-btn, .remove-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.change-btn {
+    background: #007bff;
+    color: white;
+}
+
+.change-btn:hover:not(:disabled) {
+    background: #0056b3;
+}
+
+.remove-btn {
+    background: #dc3545;
+    color: white;
+}
+
+.remove-btn:hover:not(:disabled) {
+    background: #c82333;
+}
+
+.change-btn:disabled, .remove-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Cải thiện responsive cho audio-info */
+.audio-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px;
+}
+
+.audio-details {
+    flex: 1;
+    min-width: 0; /* Cho phép text truncate */
+}
+
+.filename {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: #666;
+    flex-wrap: wrap;
+}
+
+.file-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.storage-type {
+    padding: 2px 6px;
+    background: #e7f3ff;
+    color: #0056b3;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* Cải thiện progress bar */
+.upload-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.95);
+    border-top: 1px solid #dee2e6;
+}
+
+.progress-bar {
+    height: 4px;
+    background: #e9ecef;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #007bff, #28a745);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 12px;
+    color: #495057;
+    text-align: center;
+    font-weight: 500;
+}
+
+/* Cải thiện upload area states */
+.upload-area.uploading {
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+.upload-area.has-file .upload-placeholder {
+    display: none;
+}
+
+/* Cải thiện audio preview */
+.audio-preview {
+    margin-top: 12px;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+.audio-preview audio {
+    width: 100%;
+    height: 40px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .audio-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .audio-actions {
+        align-self: stretch;
+        justify-content: space-between;
+    }
+
+    .file-meta {
+        font-size: 11px;
+        gap: 8px;
+    }
+
+    .change-btn, .remove-btn {
+        flex: 1;
+        text-align: center;
+    }
+}
+
+/* Loading state improvements */
+.enhanced-audio-uploader.loading .upload-area {
+    cursor: wait;
+}
+
+.enhanced-audio-uploader.loading .audio-actions button {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+/* Error state */
+.upload-area.error {
+    border-color: #dc3545;
+    background-color: #f8d7da;
+}
+
+.upload-area.error .upload-text {
+    color: #721c24;
+}
+
+/* Success state */
+.upload-area.success {
+    border-color: #28a745;
+    background-color: #d4edda;
+}
+
+/* Drag over effect improvements */
+.upload-area.drag-over {
+    border-color: #007bff;
+    background-color: #e3f2fd;
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.upload-area.drag-over .upload-text {
+    color: #0056b3;
+    font-weight: 600;
+}
+
+/* Icon improvements */
+.upload-icon, .audio-icon {
+    font-size: 32px;
+    opacity: 0.7;
+    margin-bottom: 8px;
+}
+
+.audio-icon {
+    font-size: 24px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+}
+
+/* Thêm vào cuối file EnhancedAudioUploader.css */
+
+/* Modal styles for confirmation dialog */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    animation: slideIn 0.3s ease-out;
+}
+
+.modal-content h3 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.modal-content p {
+    margin: 0 0 20px 0;
+    color: #666;
+    line-height: 1.5;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.btn-cancel,
+.btn-confirm {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 80px;
+}
+
+.btn-cancel {
+    background: #f8f9fa;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+}
+
+.btn-cancel:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.btn-confirm {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-confirm:hover {
+    background: #c82333;
+}
+
+.btn-cancel:focus,
+.btn-confirm:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+    .modal-content {
+        margin: 20px;
+        padding: 20px;
+    }
+
+    .modal-actions {
+        flex-direction: column;
+    }
+
+    .btn-cancel,
+    .btn-confirm {
+        width: 100%;
+    }
+}

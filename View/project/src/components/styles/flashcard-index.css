@@ -1,0 +1,377 @@
+/* ================================================ */
+/* FLASHCARD MAIN INDEX CSS */
+/* Import this file in your main App.js or index.js */
+/* ================================================ */
+
+/* Import the main flashcard CSS */
+@import '../flashcard/Flashcard.css';
+
+/* Additional global styles for flashcard integration */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure flashcard components integrate well with existing app */
+.flashcard-component {
+    min-height: calc(100vh - 64px); /* Adjust based on your navbar height */
+}
+
+/* Override any conflicting styles from main app */
+.app .flashcard-container * {
+    box-sizing: border-box;
+}
+
+/* Ensure proper spacing when flashcard components are used with navbar */
+.app .flashcard-home,
+.app .study-container,
+.app .create-container,
+.app .set-view-container,
+.app .sets-list-container,
+.app .statistics-container {
+    padding-top: 1rem;
+}
+
+/* Dark mode support (if your app has dark mode) */
+@media (prefers-color-scheme: dark) {
+    .flashcard-home {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 50%, #581c87 100%);
+    }
+
+    .flashcard-home-title,
+    .flashcard-home-subtitle {
+        color: white;
+    }
+
+    .stats-container,
+    .set-card,
+    .feature-card,
+    .navigation-card,
+    .flashcard,
+    .create-form-container,
+    .card-item,
+    .sets-list-card,
+    .mastery-section {
+        background: #1f2937;
+        border-color: #374151;
+        color: white;
+    }
+
+    .set-title,
+    .feature-title,
+    .navigation-card-title,
+    .card-word,
+    .sets-list-card-title,
+    .create-title,
+    .set-view-title,
+    .sets-list-title,
+    .statistics-title,
+    .mastery-title {
+        color: white;
+    }
+
+    .set-description,
+    .feature-description,
+    .navigation-card-description,
+    .card-meaning,
+    .sets-list-card-description,
+    .set-view-subtitle,
+    .sets-list-subtitle,
+    .statistics-subtitle {
+        color: #d1d5db;
+    }
+
+    .form-input,
+    .form-textarea,
+    .form-select {
+        background: #374151;
+        border-color: #4b5563;
+        color: white;
+    }
+
+    .form-input::placeholder,
+    .form-textarea::placeholder {
+        color: #9ca3af;
+    }
+
+    .form-label,
+    .form-checkbox-label {
+        color: #d1d5db;
+    }
+}
+
+/* Print styles for flashcard components */
+@media print {
+    .flashcard-home,
+    .study-container,
+    .create-container,
+    .set-view-container,
+    .sets-list-container,
+    .statistics-container {
+        background: white !important;
+        color: black !important;
+    }
+
+    .primary-action-btn,
+    .create-btn,
+    .set-action-btn,
+    .sets-list-btn,
+    .statistics-action-btn,
+    .form-actions,
+    .rating-section,
+    .cta-section {
+        display: none !important;
+    }
+
+    .stat-card,
+    .set-card,
+    .feature-card,
+    .card-item,
+    .sets-list-card {
+        break-inside: avoid;
+        box-shadow: none !important;
+        border: 1px solid #e5e7eb !important;
+        background: white !important;
+        color: black !important;
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    .flashcard,
+    .stat-card,
+    .set-card,
+    .feature-card,
+    .navigation-card,
+    .rating-btn,
+    .primary-action-btn,
+    .set-action-btn,
+    .pronunciation-btn,
+    .flip-btn {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .stat-card,
+    .set-card,
+    .feature-card,
+    .navigation-card,
+    .flashcard,
+    .card-item,
+    .sets-list-card {
+        border: 2px solid black !important;
+    }
+
+    .primary-action-btn,
+    .set-action-btn.primary,
+    .sets-list-btn.primary,
+    .statistics-action-btn.primary,
+    .form-submit-btn {
+        background: black !important;
+        color: white !important;
+        border: 2px solid black !important;
+    }
+
+    .rating-btn {
+        border-width: 3px !important;
+    }
+}
+
+/* Focus visible for better keyboard navigation */
+.primary-action-btn:focus-visible,
+.set-action-btn:focus-visible,
+.sets-list-btn:focus-visible,
+.statistics-action-btn:focus-visible,
+.rating-btn:focus-visible,
+.flip-btn:focus-visible,
+.pronunciation-btn:focus-visible,
+.form-submit-btn:focus-visible,
+.form-cancel-btn:focus-visible {
+    outline: 3px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Loading states */
+.flashcard-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.flashcard-loading-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    max-width: 300px;
+}
+
+/* Error states */
+.flashcard-error {
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+    color: #991b1b;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.flashcard-error-title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+/* Success states */
+.flashcard-success {
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    color: #166534;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.flashcard-success-title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+/* Utility classes for flashcard components */
+.flashcard-fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+.flashcard-slide-up {
+    animation: slideInUp 0.3s ease-out;
+}
+
+.flashcard-pulse {
+    animation: pulse 2s infinite;
+}
+
+.flashcard-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Screen reader only content */
+.flashcard-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Skip to content link for accessibility */
+.flashcard-skip-link {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    background: #3b82f6;
+    color: white;
+    padding: 8px;
+    text-decoration: none;
+    border-radius: 4px;
+    z-index: 10000;
+}
+
+.flashcard-skip-link:focus {
+    top: 6px;
+}
+
+/* Custom scrollbar for flashcard components */
+.flashcard-container *::-webkit-scrollbar {
+    width: 8px;
+}
+
+.flashcard-container *::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.flashcard-container *::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.flashcard-container *::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Ensure proper touch targets on mobile */
+@media (max-width: 768px) {
+    .rating-btn,
+    .flip-btn,
+    .pronunciation-btn,
+    .set-action-btn,
+    .sets-list-btn,
+    .form-submit-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/* Custom focus indicators that match the design */
+.flashcard-container button:focus,
+.flashcard-container a:focus,
+.flashcard-container input:focus,
+.flashcard-container textarea:focus,
+.flashcard-container select:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Ensure consistent font rendering across browsers */
+.flashcard-container {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* Z-index management for flashcard components */
+.flashcard-modal {
+    z-index: 9998;
+}
+
+.flashcard-dropdown {
+    z-index: 9997;
+}
+
+.flashcard-tooltip {
+    z-index: 9996;
+}
+
+/* Performance optimization for animations */
+.flashcard-container .transform-gpu {
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+/* Ensure proper contrast ratios */
+.flashcard-container .text-contrast-low {
+    color: #6b7280;
+}
+
+.flashcard-container .text-contrast-medium {
+    color: #374151;
+}
+
+.flashcard-container .text-contrast-high {
+    color: #111827;
+}
