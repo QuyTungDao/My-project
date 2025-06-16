@@ -145,4 +145,11 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
      */
     @Query("SELECT AVG(ta.totalScore) FROM TestAttempt ta WHERE ta.test.creator = :creator AND ta.totalScore IS NOT NULL")
     Double getAverageScoreForTeacherTests(@Param("creator") User creator);
+
+    @Query("SELECT DISTINCT ta FROM TestAttempt ta " +
+            "LEFT JOIN FETCH ta.responses r " +
+            "LEFT JOIN FETCH r.question " +
+            "WHERE ta.student.id = :studentId " +
+            "ORDER BY ta.startTime DESC")
+    List<TestAttempt> findByStudentIdWithResponsesOrderByStartTimeDesc(@Param("studentId") Integer studentId);
 }

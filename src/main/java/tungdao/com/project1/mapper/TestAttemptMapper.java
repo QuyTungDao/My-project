@@ -8,6 +8,8 @@ import tungdao.com.project1.entity.TestAttempt;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
@@ -47,23 +49,26 @@ public class TestAttemptMapper {
         dto.setTotalScore(attempt.getTotalScore());
 
         // Xử lý an toàn với responses để tránh ConcurrentModificationException
+        // Trong method toDTO(), thay đổi phần xử lý responses:
         try {
-            if (attempt.getResponses() != null) {
-                System.out.println("Responses count: " + attempt.getResponses().size());
+            Set<StudentResponse> responses = attempt.getResponses();
+            if (responses != null) {
+                // 🔧 Tránh gọi .size() trực tiếp trên lazy collection
+                System.out.println("Processing responses collection...");
 
-                // Tạo một bản sao an toàn của tập hợp responses trước khi xử lý
-                List<StudentResponse> responsesList = new ArrayList<>(attempt.getResponses());
-                List<StudentResponseDTO> responseDTOs = responsesList.stream()
+                List<StudentResponseDTO> responseDTOs = responses.stream()
+                        .filter(Objects::nonNull)
                         .map(this::toResponseDTO)
                         .collect(Collectors.toList());
                 dto.setResponses(responseDTOs);
 
                 System.out.println("Mapped responses count: " + responseDTOs.size());
+            } else {
+                dto.setResponses(new ArrayList<>());
             }
         } catch (Exception e) {
             System.err.println("Lỗi khi xử lý responses: " + e.getMessage());
             e.printStackTrace();
-            // Đặt một danh sách trống trong trường hợp có lỗi
             dto.setResponses(new ArrayList<>());
         }
 
