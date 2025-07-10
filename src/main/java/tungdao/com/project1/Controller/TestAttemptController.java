@@ -2,11 +2,14 @@ package tungdao.com.project1.Controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import tungdao.com.project1.dto.StudentResponseDTO;
 import tungdao.com.project1.dto.TestAttemptDTO;
 import tungdao.com.project1.dto.TestAttemptRequest;
 import tungdao.com.project1.entity.*;
+import tungdao.com.project1.login_register.UserDetailsImpl;
 import tungdao.com.project1.mapper.TestAttemptMapper;
 import tungdao.com.project1.repository.QuestionRepository;
 import tungdao.com.project1.repository.StudentResponseRepository;
@@ -403,5 +406,21 @@ public class TestAttemptController {
         return "NO_RESPONSE";
     }
 
+    @GetMapping("/{attemptId}/speaking-writing-result")
+    @PreAuthorize("hasRole('STUDENT') or hasRole('TEACHER') or hasRole('ADMIN')")
+    public ResponseEntity<?> getSpeakingWritingResult(@PathVariable Integer attemptId,
+                                                      @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        try {
+            System.out.println("🔍 Getting Speaking/Writing result for attempt: " + attemptId);
 
+            // Forward to the detailed result controller
+            SpeakingWritingResultController resultController = new SpeakingWritingResultController();
+            return resultController.getDetailedResult(attemptId, userDetails);
+
+        } catch (Exception e) {
+            System.err.println("❌ Error getting Speaking/Writing result: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error getting result: " + e.getMessage());
+        }
+    }
 }

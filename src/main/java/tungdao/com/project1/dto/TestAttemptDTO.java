@@ -25,6 +25,15 @@ public class TestAttemptDTO {
     private BigDecimal totalScore;
     private List<StudentResponseDTO> responses = new ArrayList<>();
 
+    // ✅ NEW GRADING FIELDS
+    private Integer graderId;
+    private String graderName;
+    private LocalDateTime gradedAt;
+    private String gradingStatus; // "PENDING" or "COMPLETED"
+    private String overallFeedback;
+    private BigDecimal overallScore; // Teacher's final score
+    private BigDecimal finalScore; // Computed: overallScore ?? totalScore
+
     public String getCompletionTime() {
         if (startTime != null && endTime != null) {
             long minutes = java.time.Duration.between(startTime, endTime).toMinutes();
@@ -40,4 +49,24 @@ public class TestAttemptDTO {
         return "0:00:00"; // Default fallback
     }
 
+    // ✅ HELPER METHODS FOR GRADING
+    public boolean isGradedByTeacher() {
+        return "COMPLETED".equals(gradingStatus) &&
+                graderId != null &&
+                gradedAt != null;
+    }
+
+    public BigDecimal getDisplayScore() {
+        return overallScore != null ? overallScore : totalScore;
+    }
+
+    public String getDisplayScoreFormatted() {
+        BigDecimal score = getDisplayScore();
+        return score != null ? score.toString() : "Pending";
+    }
+
+    // For frontend compatibility
+    public LocalDateTime getSubmittedAt() {
+        return endTime;
+    }
 }

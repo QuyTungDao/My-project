@@ -3,6 +3,7 @@ package tungdao.com.project1.dto;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -24,6 +25,11 @@ public class StudentResponseDTO {
     private Long audioFileSize;        // File size in bytes
     private String audioMimeType;      // MIME type for audio
     private String responseType;       // TEXT, AUDIO, MIXED
+    private BigDecimal manualScore;
+    private String feedback;
+    private String graderName;
+    private LocalDateTime feedbackGivenAt;
+    private Boolean requiresManualGrading;
 
     // Constructors
     public StudentResponseDTO() {
@@ -188,5 +194,15 @@ public class StudentResponseDTO {
             return String.format("ResponseValidation{valid=%s, hasResponse=%s, text=%s, audio=%s, mixed=%s}",
                     isValid, hasResponse, hasText, hasAudio, isMixed);
         }
+    }
+
+    public boolean hasGrade() {
+        return manualScore != null || isCorrect != null;
+    }
+
+    public String getResponseType() {
+        if (isAudioResponse()) return "AUDIO";
+        if (isTextResponse()) return "TEXT";
+        return "NONE";
     }
 }

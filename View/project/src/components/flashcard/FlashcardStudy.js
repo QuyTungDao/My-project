@@ -315,7 +315,6 @@ const FlashcardStudy = () => {
                 <div className="set-info-header">
                     <div className="set-info-content">
                         <h2 className="set-info-title">📚 {currentSet}</h2>
-                        <p className="set-info-subtitle">{flashcards.length} thẻ trong bộ này</p>
                     </div>
                 </div>
             )}
@@ -334,21 +333,6 @@ const FlashcardStudy = () => {
                     </button>
                 </div>
             )}
-
-            {/* Progress Header */}
-            <div className="study-progress">
-                <div className="progress-bar">
-                    <div
-                        className="progress-fill"
-                        style={{ width: `${progress}%` }}
-                    ></div>
-                </div>
-                <div className="progress-info">
-                    <span>Thẻ: {currentIndex + 1}/{flashcards.length}</span>
-                    {!currentSet && <span>Hôm nay: {sessionStats.studied}/20</span>}
-                    <span>Đúng: {sessionStats.correct}/{sessionStats.studied}</span>
-                </div>
-            </div>
 
             {/* Flashcard */}
             <div className="flashcard">

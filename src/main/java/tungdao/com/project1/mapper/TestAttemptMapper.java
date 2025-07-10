@@ -23,37 +23,73 @@ public class TestAttemptMapper {
         System.out.println("=== MAPPING TestAttempt to DTO ===");
         System.out.println("Attempt ID: " + attempt.getId());
         System.out.println("Total Score: " + attempt.getTotalScore());
-        System.out.println("Listening Score: " + attempt.getListeningScore());
-        System.out.println("Reading Score: " + attempt.getReadingScore());
+        System.out.println("Overall Score: " + attempt.getOverallScore());
 
         TestAttemptDTO dto = new TestAttemptDTO();
         dto.setId(attempt.getId());
 
+        // Basic student info
         if (attempt.getStudent() != null) {
             dto.setStudentId(attempt.getStudent().getId());
             dto.setStudentName(attempt.getStudent().getFullName());
         }
 
+        // Basic test info
         if (attempt.getTest() != null) {
             dto.setTestId(attempt.getTest().getId());
             dto.setTestName(attempt.getTest().getTestName());
+            if (attempt.getTest().getTestType() != null) {
+                dto.setTestType(attempt.getTest().getTestType().name());
+            }
         }
 
+        // Time and completion info
         dto.setStartTime(attempt.getStartTime());
         dto.setEndTime(attempt.getEndTime());
         dto.setIsCompleted(attempt.getIsCompleted());
+
+        // Score fields
         dto.setListeningScore(attempt.getListeningScore());
         dto.setReadingScore(attempt.getReadingScore());
         dto.setWritingScore(attempt.getWritingScore());
         dto.setSpeakingScore(attempt.getSpeakingScore());
         dto.setTotalScore(attempt.getTotalScore());
 
-        // Xử lý an toàn với responses để tránh ConcurrentModificationException
-        // Trong method toDTO(), thay đổi phần xử lý responses:
+        // ✅ GRADING FIELDS MAPPING
+        if (attempt.getGrader() != null) {
+            dto.setGraderId(attempt.getGrader().getId());
+            dto.setGraderName(attempt.getGrader().getFullName());
+            System.out.println("Mapped grader: " + attempt.getGrader().getFullName());
+        } else {
+            System.out.println("No grader found");
+        }
+
+        dto.setGradedAt(attempt.getGradedAt());
+        dto.setOverallFeedback(attempt.getOverallFeedback());
+        dto.setOverallScore(attempt.getOverallScore());
+
+        // Grading status
+        if (attempt.getGradingStatus() != null) {
+            dto.setGradingStatus(attempt.getGradingStatus().getCode());
+            System.out.println("Mapped grading status: " + attempt.getGradingStatus().getCode());
+        } else {
+            dto.setGradingStatus("PENDING");
+            System.out.println("Default grading status: PENDING");
+        }
+
+        // Final score computation
+        if (attempt.getOverallScore() != null) {
+            dto.setFinalScore(attempt.getOverallScore());
+            System.out.println("Final score from overall: " + attempt.getOverallScore());
+        } else {
+            dto.setFinalScore(attempt.getTotalScore());
+            System.out.println("Final score from total: " + attempt.getTotalScore());
+        }
+
+        // Responses mapping with safety
         try {
             Set<StudentResponse> responses = attempt.getResponses();
             if (responses != null) {
-                // 🔧 Tránh gọi .size() trực tiếp trên lazy collection
                 System.out.println("Processing responses collection...");
 
                 List<StudentResponseDTO> responseDTOs = responses.stream()
@@ -67,12 +103,16 @@ public class TestAttemptMapper {
                 dto.setResponses(new ArrayList<>());
             }
         } catch (Exception e) {
-            System.err.println("Lỗi khi xử lý responses: " + e.getMessage());
+            System.err.println("Error processing responses: " + e.getMessage());
             e.printStackTrace();
             dto.setResponses(new ArrayList<>());
         }
 
         System.out.println("=== MAPPING COMPLETED ===");
+        System.out.println("DTO Final Grading Status: " + dto.getGradingStatus());
+        System.out.println("DTO Final Score: " + dto.getFinalScore());
+        System.out.println("DTO Overall Score: " + dto.getOverallScore());
+
         return dto;
     }
 
@@ -87,9 +127,12 @@ public class TestAttemptMapper {
         if (response.getQuestion() != null) {
             dto.setQuestionId(response.getQuestion().getId());
             dto.setQuestionText(response.getQuestion().getQuestionText());
-            // Thêm questionType nếu Question entity có field này
-            dto.setQuestionType(response.getQuestion().getQuestionType() != null ?
-                    response.getQuestion().getQuestionType().toString() : null);
+
+            dto.setQuestionType(
+                    response.getQuestion().getQuestionType() != null ?
+                            response.getQuestion().getQuestionType().toString() : null
+            );
+
             dto.setOrderInTest(response.getQuestion().getOrderInTest());
 
             if (response.getQuestion().getPassage() != null) {
@@ -103,7 +146,11 @@ public class TestAttemptMapper {
 
         dto.setResponseText(response.getResponseText());
         dto.setIsCorrect(response.getIsCorrect());
-        dto.setSubmittedAt(response.getSubmittedAt()); // ← BỔ SUNG FIELD NÀY
+        dto.setSubmittedAt(response.getSubmittedAt());
+
+        // ✅ Add grading fields for responses
+        dto.setManualScore(response.getManualScore());
+        dto.setFeedback(response.getFeedback());
 
         return dto;
     }
@@ -117,7 +164,7 @@ public class TestAttemptMapper {
                 .collect(Collectors.toList());
     }
 
-    // Optional: Reverse mapping nếu cần
+    // Optional: Reverse mapping if needed
     public StudentResponse toEntity(StudentResponseDTO dto) {
         if (dto == null) {
             return null;
@@ -128,6 +175,8 @@ public class TestAttemptMapper {
         entity.setResponseText(dto.getResponseText());
         entity.setIsCorrect(dto.getIsCorrect());
         entity.setSubmittedAt(dto.getSubmittedAt());
+        entity.setManualScore(dto.getManualScore());
+        entity.setFeedback(dto.getFeedback());
 
         return entity;
     }

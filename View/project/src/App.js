@@ -25,6 +25,8 @@ import FlashcardSetsList from "./components/flashcard/FlashcardSetsList";
 // ✅ IMPORT CSS - THÊM DÒNG NÀY
 import './components/flashcard/Flashcard.css';
 import Profile from "./components/Profile";
+import MyTestsPage from "./components/MyTestPage";
+import AdminDashboard from "./components/AdminDashboard/AdminDashboard";
 
 // ✅ WRAPPER COMPONENT FOR SET VIEW WITH PARAMS
 const FlashcardSetViewWrapper = () => {
@@ -356,6 +358,36 @@ function App() {
                     <Route path="*" element={<Navigate to="/login" />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/learning-history" element={<Profile />} />
+
+                    <Route
+                        path="/my-tests"
+                        element={
+                            <ProtectedRoute requiredRole={["TEACHER", "ROLE_TEACHER", "ADMIN", "ROLE_ADMIN"]} fallbackPath="/access-denied">
+                                <Navbar />
+                                <MyTestsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route
+                        path="/admin/dashboard"
+                        element={
+                            <ProtectedRoute requiredRole="ADMIN">
+                                <AdminDashboard />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    // Also add the grade-submissions route:
+                    <Route
+                        path="/grade-submissions"
+                        element={
+                            <ProtectedRoute requiredRole={["TEACHER", "ROLE_TEACHER", "ADMIN", "ROLE_ADMIN"]} fallbackPath="/access-denied">
+                                <Navbar />
+                                <MyTestsPage />
+                            </ProtectedRoute>
+                        }
+                    />
                 </Routes>
             </div>
         </Router>

@@ -1,6 +1,7 @@
 package tungdao.com.project1.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
@@ -52,20 +53,25 @@ public class User {
 
     @OneToMany(mappedBy = "creator")
     @JsonManagedReference("user-tests")
+    @JsonIgnore
     private Set<Test> createdTests = new HashSet<>();
 
     @OneToMany(mappedBy = "creator")
+    @JsonIgnore
     private Set<FlashCard> flashcards = new HashSet<>();
 
     @OneToMany(mappedBy = "student")
     @JsonManagedReference("user-attempts")
+    @JsonIgnore
     private Set<TestAttempt> testAttempts = new HashSet<>();
 
     @OneToMany(mappedBy = "student")
     @JsonManagedReference("user-responses")
+    @JsonIgnore
     private Set<StudentResponse> responses = new HashSet<>();
 
     @OneToMany(mappedBy = "grader")
+    @JsonIgnore
     private Set<StudentResponse> gradedResponses = new HashSet<>();
 
     @PrePersist

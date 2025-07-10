@@ -5,7 +5,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { createTest, getTestForEdit, updateTest } from "../../api";
 import EnhancedAudioUploader from "./EnhancedAudioUploader";
 import ListeningQuestionsTab from "./ListeningQuestionsTab";
-import EnhancedListeningTestRenderer from "./EnhancedListeningTestRenderer";
 import WritingQuestionsTab from "./WritingQuestionsTab";
 import SpeakingQuestionsTab from "./SpeakingQuestionsTab";
 
@@ -619,6 +618,22 @@ export default function CreateExamPage() {
         }
     }, [watch('reading_passages')]);
 
+    useEffect(() => {
+        console.log('Test type changed to:', testType, 'Current tab:', activeTab);
+
+        // Tự động chuyển tab khi test type thay đổi và tab hiện tại không phù hợp
+        if (testType === 'READING' && activeTab === 'audio') {
+            console.log('Auto-switching from audio to passages');
+            setActiveTab('passages');
+        } else if (testType === 'LISTENING' && activeTab === 'passages') {
+            console.log('Auto-switching from passages to audio');
+            setActiveTab('audio');
+        } else if (!['READING', 'LISTENING'].includes(testType) && ['passages', 'audio'].includes(activeTab)) {
+            console.log('Auto-switching to questions for test type:', testType);
+            setActiveTab('questions');
+        }
+    }, [testType]);
+
     // Thay thế hàm handleAudioUploaded trong CreateExamPage.js bằng version này:
 
     const handleAudioUploaded = (audioInfo, audioIndex) => {
@@ -906,6 +921,41 @@ export default function CreateExamPage() {
         syncQuestionsFromSets(updatedSets);
     };
 
+    const renderCurrentTab = () => {
+        console.log('Rendering tab:', activeTab, 'for testType:', testType);
+
+        // Kiểm tra xem tab hiện tại có hợp lệ với test type không
+        if (activeTab === 'passages' && testType !== 'READING') {
+            console.warn('Invalid tab "passages" for test type:', testType);
+            // Tự động chuyển về tab phù hợp
+            const correctTab = testType === 'LISTENING' ? 'audio' : 'questions';
+            setActiveTab(correctTab);
+            return tabContent[correctTab];
+        }
+
+        if (activeTab === 'audio' && testType !== 'LISTENING') {
+            console.warn('Invalid tab "audio" for test type:', testType);
+            // Tự động chuyển về tab phù hợp
+            const correctTab = testType === 'READING' ? 'passages' : 'questions';
+            setActiveTab(correctTab);
+            return tabContent[correctTab];
+        }
+
+        const content = tabContent[activeTab];
+        if (!content) {
+            console.error('No content for tab:', activeTab);
+            return (
+                <div className="error-state">
+                    <h3>Tab không tìm thấy</h3>
+                    <p>Tab "{activeTab}" không tồn tại hoặc không phù hợp với loại bài thi "{testType}".</p>
+                    <button onClick={() => setActiveTab('info')}>Quay về thông tin</button>
+                </div>
+            );
+        }
+
+        return content;
+    };
+
 // Xóa câu hỏi khỏi nhóm
     const removeQuestionFromSet = (setId, questionIndex) => {
         const updatedSets = questionSets.map(set => {
@@ -1062,11 +1112,11 @@ export default function CreateExamPage() {
 
         switch(set.type) {
             case 'MCQ':
-                // Đảm bảo correctAnswer luôn có giá trị, mặc định là 'A'
                 const mcqCorrectAnswer = question.correctAnswer || 'A';
 
                 return (
                     <div className="mcq-options">
+                        {/* Options Input */}
                         {['A', 'B', 'C', 'D'].map((option, optIdx) => (
                             <div key={optIdx} className="mcq-option">
                                 <label>{option}:</label>
@@ -1079,19 +1129,41 @@ export default function CreateExamPage() {
                             </div>
                         ))}
 
-                        <div className="correct-answer">
-                            <label>Đáp án đúng:</label>
+                        {/* ✅ COPY từ ListeningQuestionBuilder.js */}
+                        <div className="correct-answer-selection" style={{
+                            marginTop: '15px',
+                            padding: '10px',
+                            backgroundColor: '#f8f9fa',
+                            borderRadius: '5px',
+                            border: '2px solid #007bff'
+                        }}>
+                            <label style={{ fontWeight: 'bold', marginBottom: '8px', display: 'block' }}>
+                                🎯 Đáp án đúng:
+                            </label>
                             <select
                                 value={mcqCorrectAnswer}
-                                onChange={(e) => {
-                                    console.log(`MCQ answer changed from ${mcqCorrectAnswer} to: ${e.target.value}`);
-                                    updateQuestionCorrectAnswer(set.id, qIdx, e.target.value);
+                                onChange={(e) => updateQuestionCorrectAnswer(set.id, qIdx, e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '8px',
+                                    fontSize: '16px',
+                                    border: '1px solid #ccc',
+                                    borderRadius: '4px'
                                 }}
                             >
                                 {['A', 'B', 'C', 'D'].map(opt => (
-                                    <option key={opt} value={opt}>{opt}</option>
+                                    <option key={opt} value={opt}>
+                                        {opt} {question.options && question.options[['A', 'B', 'C', 'D'].indexOf(opt)]
+                                        ? `- ${question.options[['A', 'B', 'C', 'D'].indexOf(opt)].substring(0, 30)}${question.options[['A', 'B', 'C', 'D'].indexOf(opt)].length > 30 ? '...' : ''}`
+                                        : '(chưa nhập nội dung)'}
+                                    </option>
                                 ))}
                             </select>
+
+                            {/* Visual feedback */}
+                            <div style={{ marginTop: '8px', fontSize: '14px', color: '#6c757d' }}>
+                                Đáp án hiện tại: <strong style={{ color: '#007bff' }}>{mcqCorrectAnswer}</strong>
+                            </div>
                         </div>
 
                         {commonExplanationField}
@@ -1908,139 +1980,8 @@ export default function CreateExamPage() {
         }, 100);
     };
 
-// SỬA LẠI questions tab để có debug info và refresh button
-    const questionsTabWithDebug = (
-        <div className="tab-content">
-            <section className="questions-list">
-                <h2>Dạng bài thi</h2>
-
-                {/* THÊM DEBUG CONTROLS */}
-                <div style={{
-                    background: '#fff3cd',
-                    padding: '10px',
-                    marginBottom: '20px',
-                    borderRadius: '4px',
-                    border: '1px solid #ffeaa7'
-                }}>
-                    <strong>Debug Controls:</strong>
-                    <div style={{ marginTop: '10px' }}>
-                        <button
-                            type="button"
-                            onClick={debugFormDataBeforeSubmit}
-                            style={{ marginRight: '10px', padding: '5px 10px', fontSize: '12px' }}
-                        >
-                            Log Form Data
-                        </button>
-                        <button
-                            type="button"
-                            onClick={refreshQuestionSetsFromForm}
-                            style={{ marginRight: '10px', padding: '5px 10px', fontSize: '12px' }}
-                        >
-                            Refresh Question Sets
-                        </button>
-                        <span style={{ fontSize: '12px', color: '#666' }}>
-                        Question Sets: {questionSets.length} | Form Questions: {questionFields.length}
-                    </span>
-                    </div>
-                </div>
-
-                {/* Panel chọn thêm dạng bài mới */}
-                <div className="add-question-set-panel">
-                    <p>Chọn dạng bài để thêm vào:</p>
-                    <div className="question-set-types">
-                        {[
-                            {id: 'mcq_set', name: 'Multiple Choice Questions', defaultCount: 4, type: 'MCQ'},
-                            {id: 'matching_headings', name: 'Matching Headings', defaultCount: 5, type: 'MATCHING'},
-                            {
-                                id: 'fill_blanks',
-                                name: 'Fill in the Blanks',
-                                defaultCount: 6,
-                                type: 'FILL_IN_THE_BLANK'
-                            },
-                            {
-                                id: 'tf_ng',
-                                name: 'True/False/Not Given',
-                                defaultCount: 7,
-                                type: 'TRUE_FALSE_NOT_GIVEN'
-                            },
-                            {
-                                id: 'short_answer',
-                                name: 'Short Answer Questions',
-                                defaultCount: 3,
-                                type: 'SHORT_ANSWER'
-                            }
-                        ].map(type => (
-                            <button
-                                key={type.id}
-                                className="question-set-type-btn"
-                                onClick={() => addQuestionSet(type)}
-                            >
-                                <div className="set-type-icon">{type.id.charAt(0).toUpperCase()}</div>
-                                <div className="set-type-info">
-                                    <span className="set-type-name">{type.name}</span>
-                                    <span className="set-type-count">{type.defaultCount} câu hỏi</span>
-                                </div>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Danh sách các nhóm câu hỏi đã thêm */}
-                {questionSets.length > 0 ? (
-                    <div className="question-sets-list">
-                        {questionSets.map(set => (
-                            <div
-                                key={set.id}
-                                className={`question-set-item ${expandedQuestionSet === set.id ? 'expanded' : ''}`}
-                            >
-                                <div className="question-set-header" onClick={() => toggleExpandSet(set.id)}>
-                                    <div className="question-set-title">
-                                        <span className="question-type-badge">{set.type}</span>
-                                        <h3>{set.name}</h3>
-                                        <span className="question-count">{set.questions.length} câu hỏi</span>
-                                    </div>
-                                    <div className="question-set-actions">
-                                        <button
-                                            className="btn-add-question"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                addQuestionToSet(set.id);
-                                            }}
-                                        >
-                                            + Thêm câu
-                                        </button>
-                                        <span
-                                            className="expand-icon">{expandedQuestionSet === set.id ? '▼' : '▶'}</span>
-                                    </div>
-                                </div>
-
-                                {/* Hiển thị content với debug info */}
-                                {expandedQuestionSet === set.id && renderQuestionSetContent(set)}
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="empty-state large">
-                        <div className="empty-icon">📝</div>
-                        <h3>Chưa có dạng bài nào</h3>
-                        <p>Chọn một dạng bài từ danh sách trên để bắt đầu thêm câu hỏi vào bài thi.</p>
-                    </div>
-                )}
-
-                <div className="action-buttons">
-                    <button type="button" className="btn-back" onClick={() => setActiveTab(testType === 'READING' ? 'passages' : (testType === 'LISTENING' ? 'audio' : 'info'))}>
-                        &larr; Quay lại {testType === 'READING' ? 'đoạn văn' : (testType === 'LISTENING' ? 'audio' : 'thông tin')}
-                    </button>
-
-                    <button type="button" className="btn-next" onClick={() => setActiveTab('preview')}>
-                        Tiếp theo: Xem trước &rarr;
-                    </button>
-                </div>
-            </section>
-        </div>
-    );
-
     // Nội dung các tab
+    // ✅ TAB CONTENT HOÀN CHỈNH - ĐÃ SỬA LỖI
     const tabContent = {
         info: (
             <div className="tab-content">
@@ -2077,19 +2018,6 @@ export default function CreateExamPage() {
                             />
                             {errors.duration_minutes && <span className="error">{errors.duration_minutes.message}</span>}
                         </label>
-                        <label>
-                            Điểm đạt
-                            <input
-                                type="number"
-                                step="0.5"
-                                {...register('passing_score', {
-                                    required: 'Vui lòng nhập điểm đạt',
-                                    min: { value: 0, message: 'Điểm đạt phải lớn hơn hoặc bằng 0' },
-                                    max: { value: 9, message: 'Điểm đạt phải nhỏ hơn hoặc bằng 9' }
-                                })}
-                            />
-                            {errors.passing_score && <span className="error">{errors.passing_score.message}</span>}
-                        </label>
                     </div>
                 </section>
 
@@ -2118,14 +2046,20 @@ export default function CreateExamPage() {
             </div>
         ),
 
-        passages: testType === 'READING' && (
+        passages: (
             <div className="tab-content">
                 <section className="reading-passages">
-                    <h2>Đoạn văn Reading <button
-                        type="button"
-                        className="btn-add circle-add"
-                        onClick={() => appendPassage({ title: '', content: '', order_in_test: passageFields.length + 1 })}
-                    >+</button></h2>
+                    <h2>Đoạn văn Reading
+                        <button
+                            type="button"
+                            className="btn-add circle-add"
+                            onClick={() => appendPassage({
+                                title: '',
+                                content: '',
+                                order_in_test: passageFields.length + 1
+                            })}
+                        >+</button>
+                    </h2>
 
                     {passageFields.length === 0 ? (
                         <div className="empty-state">
@@ -2204,7 +2138,9 @@ export default function CreateExamPage() {
                                                             Thêm câu hỏi cho đoạn văn này
                                                         </button>
                                                     </div>
-                                                </div>{/* Hiển thị các câu hỏi liên quan đến đoạn văn này */}
+                                                </div>
+
+                                                {/* Hiển thị các câu hỏi liên quan đến đoạn văn này */}
                                                 {questionFields.filter(q =>
                                                     watch(`questions.${questionFields.indexOf(q)}.passage_id`) === (index + 1).toString()
                                                 ).length > 0 && (
@@ -2250,7 +2186,11 @@ export default function CreateExamPage() {
                         <button
                             type="button"
                             className="btn-add-large"
-                            onClick={() => appendPassage({ title: '', content: '', order_in_test: passageFields.length + 1 })}
+                            onClick={() => appendPassage({
+                                title: '',
+                                content: '',
+                                order_in_test: passageFields.length + 1
+                            })}
                         >
                             + Thêm đoạn văn mới
                         </button>
@@ -2263,65 +2203,23 @@ export default function CreateExamPage() {
             </div>
         ),
 
-        // Thay thế phần audio tab trong CreateExamPage.js với version đã fix
-// Tìm object tabContent và thay thế key 'audio' bằng code sau:
-
-        audio: testType === 'LISTENING' && (
+        audio: (
             <div className="tab-content">
                 <section className="listening-audio">
-                    <h2>Audio Listening <button
-                        type="button"
-                        className="btn-add circle-add"
-                        onClick={() => appendAudio({
-                            title: `Section ${audioFields.length + 1}`,
-                            file_path: '',
-                            file_type: 'MP3',
-                            section: `SECTION${audioFields.length + 1}`,
-                            order_in_test: audioFields.length + 1,
-                            transcript: ''
-                        })}
-                    >+</button></h2>
-
-                    <button
-                        type="button"
-                        onClick={() => {
-                            console.log('=== FORM DATA DEBUG ===');
-                            const audioData = watch('listening_audio') || [];
-                            console.log('Raw listening_audio data:', audioData);
-
-                            audioData.forEach((audio, index) => {
-                                console.log(`\n--- Audio ${index} Debug ---`);
-                                console.log('Title:', audio.title);
-                                console.log('Section:', audio.section);
-                                console.log('File type:', audio.file_type);
-                                console.log('Has audio_base64:', !!audio.audio_base64);
-                                console.log('audio_base64 length:', audio.audio_base64?.length);
-                                console.log('Original file name:', audio.original_file_name);
-                                console.log('File size:', audio.file_size);
-                                console.log('MIME type:', audio.mime_type);
-                                console.log('File path:', audio.file_path);
-                                console.log('Duration seconds:', audio.duration_seconds);
-
-                                if (audio.audio_base64) {
-                                    console.log('Base64 preview:', audio.audio_base64.substring(0, 100) + '...');
-                                } else {
-                                    console.log('❌ NO BASE64 DATA!');
-                                }
-                            });
-                        }}
-                        style={{
-                            position: 'fixed',
-                            top: '10px',
-                            right: '100px',
-                            zIndex: 9999,
-                            background: 'orange',
-                            color: 'white',
-                            padding: '5px 10px',
-                            fontSize: '12px'
-                        }}
-                    >
-                        Debug Audio Form
-                    </button>
+                    <h2>Audio Listening
+                        <button
+                            type="button"
+                            className="btn-add circle-add"
+                            onClick={() => appendAudio({
+                                title: `Section ${audioFields.length + 1}`,
+                                file_path: '',
+                                file_type: 'MP3',
+                                section: `SECTION${audioFields.length + 1}`,
+                                order_in_test: audioFields.length + 1,
+                                transcript: ''
+                            })}
+                        >+</button>
+                    </h2>
 
                     {audioFields.length === 0 ? (
                         <div className="empty-state">
@@ -2330,8 +2228,7 @@ export default function CreateExamPage() {
                     ) : (
                         <div className="accordion-list">
                             {audioFields.map((field, index) => (
-                                <div key={field.id}
-                                     className={`accordion-item ${expandedAudio === index ? 'expanded' : ''}`}>
+                                <div key={field.id} className={`accordion-item ${expandedAudio === index ? 'expanded' : ''}`}>
                                     <div
                                         className="accordion-header"
                                         onClick={() => toggleAudio(index)}
@@ -2376,41 +2273,19 @@ export default function CreateExamPage() {
                                                     </label>
                                                 </div>
 
-                                                {/* ✅ FIX: ENHANCED AUDIO UPLOADER với form data */}
                                                 <div className="form-row">
                                                     <div className="audio-upload-container">
                                                         <label>File audio</label>
                                                         <EnhancedAudioUploader
-                                                            onAudioUploaded={(audioInfo, audioIndex) => {
-                                                                console.log('Audio uploaded for index:', index, audioInfo);
-
-                                                                if (audioInfo === null) {
-                                                                    // Xóa audio data
-                                                                    setValue(`listening_audio.${index}.audio_base64`, null);
-                                                                    setValue(`listening_audio.${index}.original_file_name`, null);
-                                                                    setValue(`listening_audio.${index}.file_size`, null);
-                                                                    setValue(`listening_audio.${index}.duration_seconds`, null);
-                                                                    setValue(`listening_audio.${index}.mime_type`, null);
-                                                                    setValue(`listening_audio.${index}.file_path`, null);
-                                                                } else {
-                                                                    // Cập nhật audio data
-                                                                    setValue(`listening_audio.${index}.audio_base64`, audioInfo.audioBase64);
-                                                                    setValue(`listening_audio.${index}.original_file_name`, audioInfo.originalFileName);
-                                                                    setValue(`listening_audio.${index}.file_size`, audioInfo.fileSize);
-                                                                    setValue(`listening_audio.${index}.duration_seconds`, audioInfo.durationSeconds || audioInfo.duration);
-                                                                    setValue(`listening_audio.${index}.mime_type`, audioInfo.mimeType);
-                                                                    setValue(`listening_audio.${index}.file_path`, null);
-                                                                }
-                                                            }}
+                                                            onAudioUploaded={(audioInfo) => handleAudioUploaded(audioInfo, index)}
                                                             existingAudio={watch(`listening_audio.${index}.file_path`) ? {
                                                                 fileName: watch(`listening_audio.${index}.original_file_name`) || watch(`listening_audio.${index}.file_path`),
                                                                 filePath: watch(`listening_audio.${index}.file_path`),
                                                                 fileSize: watch(`listening_audio.${index}.file_size`) || 0,
-                                                                duration: watch(`listening_audio.${index}.duration_seconds`) || watch(`listening_audio.${index}.duration`) || 0,
+                                                                duration: watch(`listening_audio.${index}.duration_seconds`) || 0,
                                                                 originalFileName: watch(`listening_audio.${index}.original_file_name`)
                                                             } : null}
                                                             audioIndex={index}
-                                                            // ✅ FIX: Truyền form data để component có thể restore trạng thái
                                                             formData={{
                                                                 audio_base64: watch(`listening_audio.${index}.audio_base64`),
                                                                 original_file_name: watch(`listening_audio.${index}.original_file_name`),
@@ -2535,6 +2410,7 @@ export default function CreateExamPage() {
                 </section>
             </div>
         ),
+
         questions: (() => {
             if (testType === 'LISTENING') {
                 return (
@@ -2574,7 +2450,85 @@ export default function CreateExamPage() {
                 // Default Reading questions tab
                 return (
                     <div className="tab-content">
-                        {/* ... existing reading questions content */}
+                        <section className="questions-list">
+                            <h2>Dạng bài thi</h2>
+
+                            {/* Panel chọn thêm dạng bài mới */}
+                            <div className="add-question-set-panel">
+                                <p>Chọn dạng bài để thêm vào:</p>
+                                <div className="question-set-types">
+                                    {[
+                                        {id: 'mcq_set', name: 'Multiple Choice Questions', defaultCount: 4, type: 'MCQ'},
+                                        {id: 'matching_headings', name: 'Matching Headings', defaultCount: 5, type: 'MATCHING'},
+                                        {id: 'fill_blanks', name: 'Fill in the Blanks', defaultCount: 6, type: 'FILL_IN_THE_BLANK'},
+                                        {id: 'tf_ng', name: 'True/False/Not Given', defaultCount: 7, type: 'TRUE_FALSE_NOT_GIVEN'},
+                                        {id: 'short_answer', name: 'Short Answer Questions', defaultCount: 3, type: 'SHORT_ANSWER'}
+                                    ].map(type => (
+                                        <button
+                                            key={type.id}
+                                            className="question-set-type-btn"
+                                            onClick={() => addQuestionSet(type)}
+                                        >
+                                            <div className="set-type-icon">{type.id.charAt(0).toUpperCase()}</div>
+                                            <div className="set-type-info">
+                                                <span className="set-type-name">{type.name}</span>
+                                                <span className="set-type-count">{type.defaultCount} câu hỏi</span>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Danh sách các nhóm câu hỏi đã thêm */}
+                            {questionSets.length > 0 ? (
+                                <div className="question-sets-list">
+                                    {questionSets.map(set => (
+                                        <div
+                                            key={set.id}
+                                            className={`question-set-item ${expandedQuestionSet === set.id ? 'expanded' : ''}`}
+                                        >
+                                            <div className="question-set-header" onClick={() => toggleExpandSet(set.id)}>
+                                                <div className="question-set-title">
+                                                    <span className="question-type-badge">{set.type}</span>
+                                                    <h3>{set.name}</h3>
+                                                    <span className="question-count">{set.questions.length} câu hỏi</span>
+                                                </div>
+                                                <div className="question-set-actions">
+                                                    <button
+                                                        className="btn-add-question"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            addQuestionToSet(set.id);
+                                                        }}
+                                                    >
+                                                        + Thêm câu
+                                                    </button>
+                                                    <span className="expand-icon">{expandedQuestionSet === set.id ? '▼' : '▶'}</span>
+                                                </div>
+                                            </div>
+
+                                            {expandedQuestionSet === set.id && renderQuestionSetContent(set)}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="empty-state large">
+                                    <div className="empty-icon">📝</div>
+                                    <h3>Chưa có dạng bài nào</h3>
+                                    <p>Chọn một dạng bài từ danh sách trên để bắt đầu thêm câu hỏi vào bài thi.</p>
+                                </div>
+                            )}
+
+                            <div className="action-buttons">
+                                <button type="button" className="btn-back" onClick={() => setActiveTab(testType === 'READING' ? 'passages' : (testType === 'LISTENING' ? 'audio' : 'info'))}>
+                                    &larr; Quay lại {testType === 'READING' ? 'đoạn văn' : (testType === 'LISTENING' ? 'audio' : 'thông tin')}
+                                </button>
+
+                                <button type="button" className="btn-next" onClick={() => setActiveTab('preview')}>
+                                    Tiếp theo: Xem trước &rarr;
+                                </button>
+                            </div>
+                        </section>
                     </div>
                 );
             }
@@ -2646,26 +2600,54 @@ export default function CreateExamPage() {
                             </div>
                         )}
 
+                        {testType === 'LISTENING' && audioFields.length > 0 && (
+                            <div className="preview-block">
+                                <h3>Audio ({audioFields.length})</h3>
+                                <div className="audio-summary">
+                                    {audioFields.map((field, idx) => (
+                                        <div key={field.id} className="preview-item">
+                                            <div className="preview-item-header">
+                                                <span>Audio {idx + 1}: {watch(`listening_audio.${idx}.title`)}</span>
+                                                <button
+                                                    type="button"
+                                                    className="btn-link"
+                                                    onClick={() => {
+                                                        setActiveTab('audio');
+                                                        setTimeout(() => setExpandedAudio(idx), 100);
+                                                    }}
+                                                >
+                                                    Chỉnh sửa
+                                                </button>
+                                            </div>
+                                            <div className="preview-item-body">
+                                                <p className="truncated-text">
+                                                    Section: {watch(`listening_audio.${idx}.section`)}<br/>
+                                                    {watch(`listening_audio.${idx}.transcript`)?.substring(0, 100) || 'Chưa có transcript'}
+                                                    {(watch(`listening_audio.${idx}.transcript`)?.length || 0) > 100 ? '...' : ''}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
-                        // Cập nhật phần preview trong tab preview để hiển thị explanation
                         {questionFields.length > 0 && (
                             <div className="preview-block">
                                 <h3>Câu hỏi ({questionFields.length})</h3>
-
-
                                 <div className="questions-summary">
                                     {questionFields.map((field, idx) => (
                                         <div key={field.id} className="preview-item">
                                             <div className="preview-item-header">
-                                                <span>
-                                                    Câu {idx + 1}: {watch(`questions.${idx}.question_type`)}
-                                                    {testType === 'READING' && watch(`questions.${idx}.passage_id`) &&
+                                            <span>
+                                                Câu {idx + 1}: {watch(`questions.${idx}.question_type`)}
+                                                {testType === 'READING' && watch(`questions.${idx}.passage_id`) &&
                                                     ` - Đoạn ${watch(`questions.${idx}.passage_id`)}`
-                                                        }
-                                                    {testType === 'LISTENING' && watch(`questions.${idx}.audio_id`) &&
+                                                }
+                                                {testType === 'LISTENING' && watch(`questions.${idx}.audio_id`) &&
                                                     ` - Audio ${watch(`questions.${idx}.audio_id`)}`
-                                                    }
-                                                </span>
+                                                }
+                                            </span>
 
                                                 <button
                                                     type="button"
@@ -2693,6 +2675,7 @@ export default function CreateExamPage() {
                                                 {/* Hiển thị explanation nếu có */}
                                                 {watch(`questions.${idx}.explanation`) && (
                                                     <div className="preview-explanation">
+                                                        <strong>Giải thích:</strong>
                                                         {(watch(`questions.${idx}.explanation`) || '').substring(0, 150)}
                                                         {(watch(`questions.${idx}.explanation`) || '').length > 150 ? '...' : ''}
                                                     </div>
@@ -2821,8 +2804,7 @@ export default function CreateExamPage() {
                             className={`tab ${activeTab === 'preview' ? 'active' : ''}`}
                             onClick={() => setActiveTab('preview')}
                         >
-                            <span
-                                className="number">{['READING', 'LISTENING'].includes(testType) ? '4' : '3'}</span> Preview
+                            <span className="number">{['READING', 'LISTENING'].includes(testType) ? '4' : '3'}</span> Preview
                         </button>
 
                         <div className="help-button" onClick={() => setShowTips(!showTips)}>
@@ -2844,13 +2826,13 @@ export default function CreateExamPage() {
                         </div>
                     )}
 
+                    {/* ✅ SỬ DỤNG renderCurrentTab() THAY VÌ tabContent[activeTab] */}
                     {activeTab !== 'preview' ? (
                         <form onSubmit={(e) => e.preventDefault()}>
-                            {tabContent[activeTab]}
+                            {renderCurrentTab()}
                         </form>
                     ) : (
-                        /* Render trực tiếp nội dung tab preview không trong form */
-                        tabContent.preview
+                        renderCurrentTab()
                     )}
                 </>
             )}

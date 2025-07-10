@@ -110,12 +110,54 @@ public class StudentResponse {
     }
 
     public boolean requiresManualGrading() {
-        // Speaking responses or Writing essays need manual grading
-        return hasAudioResponse() ||
-                (hasTextResponse() && question != null &&
-                        (question.getQuestionType().toString().contains("WRITING") ||
-                                question.getQuestionType().toString().contains("SPEAKING") ||
-                                question.getQuestionType().toString().equals("ESSAY")));
+        // Check if it's a subjective question type
+        if (this.question != null && this.question.getQuestionType() != null) {
+            QuestionType type = this.question.getQuestionType();
+
+            // Writing and speaking questions require manual grading
+            boolean isSubjectiveType = type == QuestionType.WRITING_TASK1_ACADEMIC ||
+                    type == QuestionType.WRITING_TASK1_GENERAL ||
+                    type == QuestionType.WRITING_TASK2 ||
+                    type == QuestionType.ESSAY ||
+                    type == QuestionType.SPEAKING_PART1 ||
+                    type == QuestionType.SPEAKING_PART2 ||
+                    type == QuestionType.SPEAKING_PART3 ||
+                    type == QuestionType.SPEAKING_TASK;
+
+            if (isSubjectiveType) {
+                return true;
+            }
+        }
+
+        // Audio responses require manual grading
+        if (this.audioBase64 != null && !this.audioBase64.trim().isEmpty()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * ✅ SAFE: Check if this response has been manually graded
+     */
+    public boolean isManuallyGraded() {
+        return this.requiresManualGrading() && this.manualScore != null;
+    }
+
+    /**
+     * ✅ SAFE: Get effective score (manual score if available, otherwise auto score)
+     */
+    public BigDecimal getEffectiveScore() {
+        if (this.manualScore != null) {
+            return this.manualScore;
+        }
+
+        // For objective questions, convert isCorrect to score
+        if (this.isCorrect != null) {
+            return this.isCorrect ? BigDecimal.valueOf(1.0) : BigDecimal.ZERO;
+        }
+
+        return BigDecimal.ZERO;
     }
 }
 

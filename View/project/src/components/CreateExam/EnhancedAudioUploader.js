@@ -6,7 +6,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import './EnhancedAudioUploader.css';
 
 const validateAudioFile = (file) => {
-    const maxSize = 50 * 1024 * 1024; // 50MB
+    const maxSize = 100 * 1024 * 1024; // ✅ CHANGE: Increase from 50MB to 100MB
     const allowedTypes = ['audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/mpeg'];
 
     const errors = [];
@@ -17,7 +17,7 @@ const validateAudioFile = (file) => {
     }
 
     if (file.size > maxSize) {
-        errors.push('File quá lớn. Kích thước tối đa là 50MB');
+        errors.push('File quá lớn. Kích thước tối đa là 100MB'); // ✅ CHANGE: Update message
     }
 
     if (!allowedTypes.includes(file.type)) {
@@ -183,7 +183,7 @@ const EnhancedAudioUploader = ({ onAudioUploaded, existingAudio = null, audioInd
             // Convert to base64
             console.log('Converting to base64...');
             const base64Data = await convertToBase64(file);
-            setUploadProgress(30);
+            setUploadProgress(40);
 
             console.log('Base64 conversion result:', {
                 length: base64Data.length,
@@ -195,11 +195,11 @@ const EnhancedAudioUploader = ({ onAudioUploaded, existingAudio = null, audioInd
             let duration = 0;
             try {
                 duration = await getAudioDuration(file);
-                setUploadProgress(60);
+                setUploadProgress(70);
                 console.log('Audio duration:', duration, 'seconds');
             } catch (e) {
                 console.warn('Cannot get audio duration:', e);
-                setUploadProgress(60);
+                setUploadProgress(70);
             }
 
             // ✅ ENHANCED: Create audio info object for replacement

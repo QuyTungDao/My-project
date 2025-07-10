@@ -15,6 +15,8 @@ import tungdao.com.project1.login_register.UserDetailsImpl;
 import tungdao.com.project1.mapper.TestAttemptMapper;
 import tungdao.com.project1.mapper.TestMapper;
 import tungdao.com.project1.repository.ListeningAudioRepository;
+import tungdao.com.project1.repository.TestAttemptRepository;
+import tungdao.com.project1.repository.TestRepository;
 import tungdao.com.project1.repository.UserRepository;
 import tungdao.com.project1.service.*;
 
@@ -39,6 +41,8 @@ public class TestController {
     private final ListeningAudioService listeningAudioService;
     private final WritingSpeakingService writingSpeakingService;
     private final AudioProcessingService audioProcessingService;
+    private final TestRepository testRepository;
+    private final TestAttemptRepository testAttemptRepository;
 
     public TestController(TestService testService,
                           ReadingPassageService readingPassageService,
@@ -53,7 +57,7 @@ public class TestController {
                           ListeningAudioService listeningAudioService,
                           ListeningAudioRepository listeningAudioRepository,
                           WritingSpeakingService writingSpeakingService,
-                          AudioProcessingService audioProcessingService) {
+                          AudioProcessingService audioProcessingService, TestRepository testRepository, TestAttemptRepository testAttemptRepository) {
         this.testService = testService;
         this.readingPassageService = readingPassageService;
         this.questionService = questionService;
@@ -68,6 +72,8 @@ public class TestController {
         this.listeningAudioService = listeningAudioService;
         this.writingSpeakingService = writingSpeakingService;
         this.audioProcessingService = audioProcessingService;
+        this.testRepository = testRepository;
+        this.testAttemptRepository = testAttemptRepository;
     }
 
     // Lấy tất cả bài thi đã publish - Sử dụng DTO
@@ -178,9 +184,8 @@ public class TestController {
 
                     // ✅ ENHANCED: Better audio data handling
                     boolean hasBase64 = audio.hasBase64Data();
-                    boolean hasFilePath = audio.getFilePath() != null && !audio.getFilePath().trim().isEmpty();
 
-                    System.out.println("Audio " + audio.getId() + " - hasBase64: " + hasBase64 + ", hasFilePath: " + hasFilePath);
+                    System.out.println("Audio " + audio.getId() + " - hasBase64: " + hasBase64);
 
                     if (hasBase64) {
                         // ✅ Base64 data available
@@ -203,34 +208,8 @@ public class TestController {
 
                         System.out.println("✅ Audio " + audio.getId() + " mapped with BASE64 data");
 
-                    } else if (hasFilePath) {
-                        // ✅ File path available
-                        String scheme = request.getScheme();
-                        String serverName = request.getServerName();
-                        int serverPort = request.getServerPort();
-                        String contextPath = request.getContextPath();
-
-                        String fullUrl;
-                        if (audio.getFilePath().startsWith("http")) {
-                            fullUrl = audio.getFilePath();
-                        } else {
-                            if ((scheme.equals("http") && serverPort == 80) ||
-                                    (scheme.equals("https") && serverPort == 443)) {
-                                fullUrl = scheme + "://" + serverName + contextPath + "/api" + audio.getFilePath();
-                            } else {
-                                fullUrl = scheme + "://" + serverName + ":" + serverPort + contextPath + "/api" + audio.getFilePath();
-                            }
-                        }
-
-                        audioMap.put("filePath", audio.getFilePath());
-                        audioMap.put("fileUrl", fullUrl);
-                        audioMap.put("audioUrl", fullUrl); // ✅ Additional alias
-                        audioMap.put("mimeType", audio.getEffectiveMimeType());
-                        audioMap.put("storageType", "file_path");
-
-                        System.out.println("✅ Audio " + audio.getId() + " mapped with FILE PATH: " + fullUrl);
-
-                    } else {
+                    }
+                     else {
                         // ✅ No audio data
                         System.err.println("❌ Audio " + audio.getId() + " has NO AUDIO DATA!");
                         audioMap.put("storageType", "none");
@@ -335,7 +314,7 @@ public class TestController {
                 int textCount = 0;
 
                 for (int i = 0; i < Math.min(3, request.getResponses().size()); i++) {
-                    StudentResponseDTO resp = request.getResponses().get(i);
+                    TestAttemptRequest.ResponseData resp = request.getResponses().get(i);
                     boolean hasAudio = resp.getAudioResponse() != null && !resp.getAudioResponse().trim().isEmpty();
                     boolean hasText = resp.getResponseText() != null && !resp.getResponseText().trim().isEmpty();
 
@@ -410,15 +389,15 @@ public class TestController {
 
             // ✅ FIXED VERSION: Replace the problematic section in TestController.java
 
-            for (StudentResponseDTO responseDTO : request.getResponses()) {
+            for (TestAttemptRequest.ResponseData responseData : request.getResponses()) {
                 totalProcessed++;
 
                 System.out.println("--- Processing Response " + totalProcessed + " ---");
-                System.out.println("Question ID: " + responseDTO.getQuestionId());
+                System.out.println("Question ID: " + responseData.getQuestionId());
 
-                Question question = questionService.getQuestionById(responseDTO.getQuestionId());
+                Question question = questionService.getQuestionById(responseData.getQuestionId());
                 if (question == null) {
-                    System.out.println("❌ Question not found: " + responseDTO.getQuestionId());
+                    System.out.println("❌ Question not found: " + responseData.getQuestionId());
                     totalSkipped++;
                     continue;
                 }
@@ -434,26 +413,26 @@ public class TestController {
                 response.setSubmittedAt(LocalDateTime.now());
 
                 // ✅ CHECK RESPONSE TYPE - Support both text and audio
-                boolean hasTextResponse = responseDTO.getResponseText() != null &&
-                        !responseDTO.getResponseText().trim().isEmpty();
-                boolean hasAudioResponse = responseDTO.getAudioResponse() != null &&
-                        !responseDTO.getAudioResponse().trim().isEmpty();
+                boolean hasTextResponse = responseData.getResponseText() != null &&
+                        !responseData.getResponseText().trim().isEmpty();
+                boolean hasAudioResponse = responseData.getAudioResponse() != null &&
+                        !responseData.getAudioResponse().trim().isEmpty();
 
                 System.out.println("Has text response: " + hasTextResponse);
                 System.out.println("Has audio response: " + hasAudioResponse);
 
                 if (hasTextResponse) {
-                    System.out.println("Response Text: '" + responseDTO.getResponseText() + "'");
+                    System.out.println("Response Text: '" + responseData.getResponseText() + "'");
                     totalTextResponses++;
                 }
 
                 // ✅ HANDLE TEXT RESPONSES (Reading, Listening, Writing)
                 if (hasTextResponse) {
-                    response.setResponseText(responseDTO.getResponseText());
+                    response.setResponseText(responseData.getResponseText());
 
                     // Calculate word count for writing tasks
                     if (isWritingQuestion(question.getQuestionType())) {
-                        int wordCount = countWords(responseDTO.getResponseText());
+                        int wordCount = countWords(responseData.getResponseText());
                         response.setWordCount(wordCount);
                         System.out.println("Word count: " + wordCount);
                     }
@@ -465,7 +444,7 @@ public class TestController {
                         if (correctAnswer != null) {
                             System.out.println("Correct Answer: '" + correctAnswer.getCorrectAnswerText() + "'");
 
-                            boolean isCorrect = checkAnswer(responseDTO.getResponseText(), correctAnswer);
+                            boolean isCorrect = checkAnswer(responseData.getResponseText(), correctAnswer);
                             response.setIsCorrect(isCorrect);
 
                             System.out.println("Check Result: " + (isCorrect ? "✅ CORRECT" : "❌ INCORRECT"));
@@ -497,13 +476,14 @@ public class TestController {
                 if (hasAudioResponse) {
                     try {
                         System.out.println("=== PROCESSING AUDIO RESPONSE ===");
-                        System.out.println("Audio Response: " + responseDTO.getAudioResponse().length() + " characters");
-                        System.out.println("Audio Duration: " + responseDTO.getAudioDuration() + " seconds");
-                        System.out.println("Audio File Type: " + responseDTO.getAudioFileType());
+                        System.out.println("Audio Response: " + responseData.getAudioResponse().length() + " characters");
+                        System.out.println("Audio Duration: " + responseData.getAudioDuration() + " seconds");
+                        System.out.println("Audio File Type: " + responseData.getAudioFileType());
 
                         // ✅ USE AudioProcessingService for validation and processing
+                        StudentResponseDTO audioDTO = convertToStudentResponseDTO(responseData);
                         AudioProcessingService.AudioProcessingResult audioResult =
-                                audioProcessingService.processAudioResponse(responseDTO);
+                                audioProcessingService.processAudioResponse(audioDTO);
 
                         if (!audioResult.success) {
                             System.err.println("❌ Audio processing failed: " + audioResult.error);
@@ -654,6 +634,16 @@ public class TestController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Lỗi khi lưu kết quả: " + e.getMessage());
         }
+    }
+
+    private StudentResponseDTO convertToStudentResponseDTO(TestAttemptRequest.ResponseData responseData) {
+        StudentResponseDTO dto = new StudentResponseDTO();
+        dto.setQuestionId(responseData.getQuestionId());
+        dto.setResponseText(responseData.getResponseText());
+        dto.setAudioResponse(responseData.getAudioResponse());
+        dto.setAudioDuration(responseData.getAudioDuration());
+        dto.setAudioFileType(responseData.getAudioFileType());
+        return dto;
     }
 
     private boolean isObjectiveQuestion(QuestionType questionType) {
@@ -989,52 +979,130 @@ public class TestController {
         }
     }
 
+    // =====================================
+// 🚨 THAY THẾ HOÀN TOÀN method getMyTests() trong TestController.java
+// =====================================
+
     @GetMapping("/my-tests")
     @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
     public ResponseEntity<?> getMyTests(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
-            System.out.println("=== GET MY TESTS ===");
-            System.out.println("Requested by user: " + userDetails.getUsername());
+            System.out.println("=== GETTING MY TESTS (SIMPLE & WORKING) ===");
+            System.out.println("User ID: " + userDetails.getId());
+            System.out.println("Username: " + userDetails.getUsername());
 
             User currentUser = userRepository.findById(userDetails.getId()).orElse(null);
             if (currentUser == null) {
+                System.err.println("❌ User not found with ID: " + userDetails.getId());
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body("Không tìm thấy thông tin người dùng");
+                        .body(Map.of("error", true, "message", "User not found"));
             }
 
-            List<Test> myTests;
+            System.out.println("✅ Found user: " + currentUser.getEmail() + " (Role: " + currentUser.getRole() + ")");
 
+            List<Test> userTests = new ArrayList<>();
+
+            // ✅ SIMPLE: Use working repository methods only
             if (currentUser.getRole() == UserRole.ADMIN) {
-                // Admin sees all tests
-                myTests = testService.getAllTests();
-                System.out.println("✅ Admin access: Retrieved " + myTests.size() + " tests");
+                System.out.println("🔑 Admin access - getting all tests");
+                userTests = testRepository.findAll();
+
+            } else if (currentUser.getRole() == UserRole.TEACHER) {
+                System.out.println("👨‍🏫 Teacher access - getting own tests");
+
+                // ✅ USE ONLY WORKING METHODS
+                userTests = testRepository.findByCreator(currentUser);
+                System.out.println("📝 Found " + userTests.size() + " tests by creator");
+
+                // ✅ FALLBACK: Try by creator ID if empty
+                if (userTests.isEmpty()) {
+                    userTests = testRepository.findByCreatorId(currentUser.getId());
+                    System.out.println("📝 Fallback: Found " + userTests.size() + " tests by creator ID");
+                }
+
             } else {
-                // Teacher sees only their own tests
-                myTests = testService.getTestsByCreator(currentUser);
-                System.out.println("✅ Teacher access: Retrieved " + myTests.size() + " own tests");
+                System.err.println("❌ Invalid role: " + currentUser.getRole());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", true, "message", "Access denied: Invalid role"));
             }
 
-            List<TestDTO> testDTOs = testMapper.toDTOList(myTests);
+            System.out.println("✅ Total tests found: " + userTests.size());
 
-            // ✅ Add creator info to each test
-            for (TestDTO testDTO : testDTOs) {
-                Test originalTest = myTests.stream()
-                        .filter(t -> t.getId().equals(testDTO.getId()))
-                        .findFirst()
-                        .orElse(null);
+            // ✅ SIMPLE DTO CONVERSION (no complex grading info for now)
+            List<Map<String, Object>> testDTOs = new ArrayList<>();
 
-                if (originalTest != null && originalTest.getCreator() != null) {
-                    testDTO.setCreatorName(originalTest.getCreator().getFullName());
-                    testDTO.setCreatorEmail(originalTest.getCreator().getEmail());
+            for (Test test : userTests) {
+                try {
+                    Map<String, Object> dto = new HashMap<>();
+
+                    // Basic test info
+                    dto.put("id", test.getId());
+                    dto.put("testName", test.getTestName() != null ? test.getTestName() : "Unnamed Test");
+                    dto.put("testType", test.getTestType() != null ? test.getTestType().toString() : "READING");
+                    dto.put("description", test.getDescription() != null ? test.getDescription() : "");
+                    dto.put("durationMinutes", test.getDurationMinutes() != null ? test.getDurationMinutes() : 60);
+                    dto.put("passingScore", test.getPassingScore() != null ? test.getPassingScore() : BigDecimal.valueOf(5.0));
+                    dto.put("isPublished", test.getIsPublished() != null ? test.getIsPublished() : false);
+                    dto.put("createdAt", test.getCreatedAt());
+                    dto.put("updatedAt", test.getUpdatedAt());
+
+                    // Creator info
+                    if (test.getCreator() != null) {
+                        dto.put("creatorName", test.getCreator().getFullName());
+                        dto.put("creatorEmail", test.getCreator().getEmail());
+                    }
+
+                    // ✅ SIMPLE: Basic submission count (no complex grading stats)
+                    int totalSubmissions = 0;
+                    try {
+                        List<TestAttempt> attempts = testAttemptRepository.findByTestIdOrderByEndTimeDesc(test.getId());
+                        totalSubmissions = attempts.size();
+                    } catch (Exception e) {
+                        System.err.println("⚠️ Could not get attempts for test " + test.getId() + ": " + e.getMessage());
+                    }
+
+                    dto.put("totalSubmissions", totalSubmissions);
+                    dto.put("pendingSubmissions", 0); // Will be calculated later if needed
+
+                    testDTOs.add(dto);
+
+                    System.out.println("✅ Processed test: " + test.getId() + " - " + test.getTestName());
+
+                } catch (Exception testError) {
+                    System.err.println("❌ Error processing test " + test.getId() + ": " + testError.getMessage());
+                    // Continue with next test
                 }
             }
 
+            // ✅ SORT BY CREATION DATE (newest first)
+            testDTOs.sort((a, b) -> {
+                LocalDateTime dateA = (LocalDateTime) a.get("createdAt");
+                LocalDateTime dateB = (LocalDateTime) b.get("createdAt");
+
+                if (dateA == null && dateB == null) return 0;
+                if (dateA == null) return 1;
+                if (dateB == null) return -1;
+                return dateB.compareTo(dateA);
+            });
+
+            System.out.println("=== SUCCESS RESPONSE ===");
+            System.out.println("✅ Returning " + testDTOs.size() + " tests");
+            System.out.println("User role: " + currentUser.getRole());
+
             return ResponseEntity.ok(testDTOs);
+
         } catch (Exception e) {
-            System.err.println("Error getting my tests: " + e.getMessage());
+            System.err.println("❌ CRITICAL ERROR in getMyTests: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Lỗi khi lấy danh sách bài thi: " + e.getMessage());
+
+            // ✅ DETAILED ERROR RESPONSE
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", true);
+            errorResponse.put("message", "Error getting tests: " + e.getMessage());
+            errorResponse.put("type", e.getClass().getSimpleName());
+            errorResponse.put("userId", userDetails != null ? userDetails.getId() : "unknown");
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 
@@ -1227,14 +1295,6 @@ public class TestController {
                 question.setQuestionSetInstructions(questionDTO.getQuestionSetInstructions());
                 question.setContext(questionDTO.getContext());
 
-                // ✅ SỬ DỤNG helper methods
-                if (QuestionTypeHelper.isSpeakingType(mappedType) && questionDTO.getSpeakingPart() != null) {
-                    question.setSpeakingPart(questionDTO.getSpeakingPart());
-                }
-
-                if (questionDTO.getVisualMaterialPath() != null) {
-                    question.setVisualMaterialPath(questionDTO.getVisualMaterialPath());
-                }
 
                 // Save question
                 question = questionService.saveQuestion(question);
@@ -1388,9 +1448,7 @@ public class TestController {
                     audio.setOriginalFileName(audioDTO.getOriginalFileName());
                     audio.setFileSize(audioDTO.getFileSize());
                     audio.setMimeType(audioDTO.getMimeType());
-                    audio.setFilePath(null);
                 } else if (hasFilePath) {
-                    audio.setFilePath(audioDTO.getFilePath());
                     audio.setAudioBase64(null);
                     audio.setOriginalFileName(audioDTO.getOriginalFileName());
                     audio.setFileSize(audioDTO.getFileSize());
@@ -1426,7 +1484,8 @@ public class TestController {
             Question question = new Question();
             question.setTest(test);
             question.setQuestionText(questionDTO.getQuestionText());
-            question.setQuestionType(QuestionType.valueOf(questionDTO.getQuestionType()));
+            QuestionType mappedType = mapQuestionType(questionDTO.getQuestionType());
+            question.setQuestionType(mappedType);
             question.setOptions(questionDTO.getOptions());
             question.setSection(questionDTO.getSection());
             question.setOrderInTest(questionDTO.getOrderInTest() != null ? questionDTO.getOrderInTest() : 0);
@@ -1692,16 +1751,19 @@ public class TestController {
             throw new RuntimeException("Audio data too small for question " + questionId);
         }
 
-        // Check maximum size (prevent extremely large uploads)
-        if (audioBase64.length() > 50_000_000) { // ~37MB after base64 decode
-            throw new RuntimeException("Audio data too large for question " + questionId);
+        // ✅ UPDATED: Check maximum size for 100MB (Base64 is ~33% larger than original)
+        // 100MB file ≈ 133MB in Base64 ≈ 133,000,000 characters
+        long maxBase64Size = 133_000_000L; // ~100MB decoded
+        if (audioBase64.length() > maxBase64Size) {
+            throw new RuntimeException("Audio data too large for question " + questionId +
+                    ". Maximum size: 100MB");
         }
     }
 
     @PostMapping("/validate-audio-response")
     public ResponseEntity<?> validateAudioData(@RequestBody StudentResponseDTO responseDTO) {
         try {
-            System.out.println("=== VALIDATING AUDIO DATA ===");
+            System.out.println("=== VALIDATING AUDIO DATA (100MB LIMIT) ===");
             System.out.println("Question ID: " + responseDTO.getQuestionId());
 
             if (!responseDTO.isAudioResponse()) {
@@ -1711,12 +1773,32 @@ public class TestController {
                 ));
             }
 
+            // ✅ ENHANCED: Log audio data size
+            String audioData = responseDTO.getAudioResponse();
+            if (audioData != null) {
+                System.out.println("Audio data length: " + audioData.length() + " characters");
+
+                // Estimate original file size (Base64 is ~33% larger)
+                long estimatedFileSize = (long) (audioData.length() * 0.75);
+                System.out.println("Estimated file size: " + formatFileSize(estimatedFileSize));
+
+                // Check if exceeds 100MB
+                if (estimatedFileSize > 100 * 1024 * 1024) {
+                    return ResponseEntity.badRequest().body(Map.of(
+                            "valid", false,
+                            "error", "Audio file too large. Maximum size: 100MB",
+                            "estimatedSize", formatFileSize(estimatedFileSize)
+                    ));
+                }
+            }
+
             // Process audio to validate
             AudioProcessingService.AudioProcessingResult result =
                     audioProcessingService.processAudioResponse(responseDTO);
 
             Map<String, Object> validation = new HashMap<>();
             validation.put("valid", result.success);
+            validation.put("maxFileSize", "100MB");
 
             if (result.success) {
                 validation.put("duration", result.duration);
@@ -1726,6 +1808,12 @@ public class TestController {
                 validation.put("fileType", result.fileType);
                 validation.put("mimeType", result.mimeType);
                 validation.put("message", "Audio data is valid and ready for submission");
+
+                // ✅ ADDITIONAL: Check if file size is within limits
+                if (result.actualFileSize > 100 * 1024 * 1024) {
+                    validation.put("valid", false);
+                    validation.put("error", "File size exceeds 100MB limit");
+                }
             } else {
                 validation.put("error", result.error);
                 validation.put("message", "Audio validation failed: " + result.error);
@@ -1738,7 +1826,8 @@ public class TestController {
             System.err.println("Error validating audio: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
                     "valid", false,
-                    "error", "Validation failed: " + e.getMessage()
+                    "error", "Validation failed: " + e.getMessage(),
+                    "maxFileSize", "100MB"
             ));
         }
     }
@@ -1790,4 +1879,19 @@ public class TestController {
         return String.format("%d:%02d", minutes, remainingSeconds);
     }
 
+    @GetMapping("/audio-limits")
+    public ResponseEntity<?> getAudioLimits() {
+        Map<String, Object> limits = new HashMap<>();
+        limits.put("maxFileSize", 100 * 1024 * 1024); // 100MB in bytes
+        limits.put("maxFileSizeFormatted", "100MB");
+        limits.put("maxBase64Size", 133_000_000L); // ~100MB encoded
+        limits.put("supportedFormats", Arrays.asList(
+                "audio/mp3", "audio/wav", "audio/ogg",
+                "audio/m4a", "audio/mpeg", "audio/webm"
+        ));
+        limits.put("recommendedDuration", "5 minutes");
+        limits.put("maxDuration", "30 minutes");
+
+        return ResponseEntity.ok(limits);
+    }
 }

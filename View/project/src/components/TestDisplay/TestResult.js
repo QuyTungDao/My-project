@@ -6,20 +6,29 @@ import './TestResult.css';
 import api from '../../api';
 // ✅ Import external popup component
 import QuestionDetailPopup from './QuestionDetailPopup';
+import SpeakingWritingResultModal from './SpeakingWritingResultModal';
+import SpeakingWritingResultPage from './SpeakingWritingResultPage';
 
 export default function TestResult() {
+    console.log('🔍 TestResult component started loading...');
+    const { id } = useParams(); // id là attempt_id
+    console.log('🔍 TestResult received ID from URL:', id);
+
     const [selectedQuestion, setSelectedQuestion] = useState(null);
     const [selectedPassage, setSelectedPassage] = useState(null);
     const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const { id } = useParams(); // id là attempt_id
+
     const navigate = useNavigate();
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('passage');
+    const [showDetailedModal, setShowDetailedModal] = useState(false);
+    const [showSpeakingWritingModal, setShowSpeakingWritingModal] = useState(false);
 
     // ✅ ENHANCED useEffect to fetch test result AND original test details
     useEffect(() => {
+        console.log('🔍 TestResult useEffect triggered with id:', id);
         const fetchTestResult = async () => {
             try {
                 console.log('=== FETCHING TEST RESULT ===');
@@ -906,6 +915,24 @@ export default function TestResult() {
         setSelectedPassage(null);
     };
 
+    const isSpeakingWritingTest = () => {
+        return result?.testType === 'SPEAKING' ||
+            result?.testType === 'WRITING' ||
+            result?.test?.testType === 'SPEAKING' ||
+            result?.test?.testType === 'WRITING' ||
+            result?.responses?.some(r =>
+                r.questionType?.includes('SPEAKING') ||
+                r.questionType?.includes('WRITING') ||
+                r.audioResponse ||
+                r.audioBase64
+            );
+    };
+
+// 4. Thêm function để mở modal chi tiết
+    const handleViewDetailedResult = () => {
+        setShowDetailedModal(true);
+    };
+
     // ✅ Calculate stats and groups
     const stats = calculateComprehensiveStats();
     const questionGroups = groupQuestionsByType();
@@ -1011,187 +1038,208 @@ export default function TestResult() {
     return (
         <div className="test-result">
             <Navbar />
-            <div className="result-container">
-                {/* Info Alert */}
-                <div className="info-alert">
-                    <div className="info-icon">i</div>
-                    <div className="info-text">
-                        <strong>Chú ý:</strong> Bạn có thể tạo flashcards từ highlights (bao gồm các highlights các bạn đã tạo trước đây) trong trang chi tiết kết quả bài thi. <a href="#" className="info-link">Xem hướng dẫn.</a>
-                    </div>
-                </div>
 
-                {/* Header */}
-                <h1 className="result-title">Kết quả thi: {result.testName || 'IELTS Simulation Reading test'}</h1>
+            {/* ✅ PHÂN NHÁNH DỰA TRÊN LOẠI BÁI THI */}
+            {isSpeakingWritingTest() ? (
+                // Speaking/Writing: Dùng page component riêng
+                <>
+                    <SpeakingWritingResultPage
+                        result={result}
+                        onViewDetailedResult={handleViewDetailedResult}
+                    />
 
-                {/* Action Buttons */}
-                <div className="action-buttons">
-                    <button className="btn btn-primary">Xem đáp án</button>
-                    <button
-                        className="btn btn-secondary"
-                        onClick={() => navigate('/online-exam')}
-                    >
-                        Quay về trang đề thi
-                    </button>
-                </div>
-
-                {/* ✅ FIXED: Summary Section with accurate stats */}
-                <div className="result-summary">
-                    <div className="summary-grid">
-                        <div className="summary-meta">
-                            <h3>✓ Kết quả làm bài</h3>
-                            <p className="accuracy-info">Độ chính xác (#đúng/#tổng): {stats.accuracy}%</p>
-                            <p className="time-info">Thời gian hoàn thành: {result.completionTime || '0:00:06'}</p>
-                        </div>
-
-                        <div className="summary-item">
-                            <div className="summary-label">
-                                <span className="summary-icon check-icon">✓</span>
-                                Trả lời đúng
-                            </div>
-                            <div className="summary-value">{stats.totalCorrect}</div>
-                            <div>câu hỏi</div>
-                        </div>
-
-                        <div className="summary-item">
-                            <div className="summary-label">
-                                <span className="summary-icon close-icon">✗</span>
-                                Trả lời sai
-                            </div>
-                            <div className="summary-value">{stats.totalIncorrected}</div>
-                            <div>câu hỏi</div>
-                        </div>
-
-                        <div className="summary-item">
-                            <div className="summary-label">
-                                <span className="summary-icon minus-icon">−</span>
-                                Bỏ qua
-                            </div>
-                            <div className="summary-value">{stats.totalSkipped}</div>
-                            <div>câu hỏi</div>
-                        </div>
-
-                        <div className="summary-item">
-                            <div className="summary-label">
-                                <span className="summary-icon flag-icon">🏁</span>
-                                Điểm
-                            </div>
-                            <div className="summary-value score">{stats.score}</div>
+                    {/* Modal chi tiết chỉ hiện khi được yêu cầu */}
+                    <SpeakingWritingResultModal
+                        isOpen={showDetailedModal}
+                        onClose={() => setShowDetailedModal(false)}
+                        attemptId={id}
+                        testType={result.testType || result.test?.testType}
+                    />
+                </>
+            ) : (
+                // Reading/Listening: Giữ nguyên UI cũ
+                <div className="result-container">
+                    {/* Info Alert */}
+                    <div className="info-alert">
+                        <div className="info-icon">i</div>
+                        <div className="info-text">
+                            <strong>Chú ý:</strong> Bạn có thể tạo flashcards từ highlights (bao gồm các highlights các bạn đã tạo trước đây) trong trang chi tiết kết quả bài thi. <a href="#" className="info-link">Xem hướng dẫn.</a>
                         </div>
                     </div>
-                </div>
 
-                {/* Tabs Section */}
-                <div className="result-tabs">
-                    <div className="tab-buttons">
+                    {/* Header */}
+                    <h1 className="result-title">Kết quả thi: {result.testName || 'IELTS Simulation Reading test'}</h1>
+
+                    {/* Action Buttons */}
+                    <div className="action-buttons">
+                        <button className="btn btn-primary">Xem đáp án</button>
                         <button
-                            className={`tab-button ${activeTab === 'passage' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('passage')}
+                            className="btn btn-secondary"
+                            onClick={() => navigate('/online-exam')}
                         >
-                            Passage
-                        </button>
-                        <button
-                            className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('overview')}
-                        >
-                            Tổng quát
+                            Quay về trang đề thi
                         </button>
                     </div>
 
-                    <div className="tab-content">
-                        {activeTab === 'passage' && (
-                            <div className="passage-content">
-                                <h3>Phân tích chi tiết</h3>
-
-                                {questionGroups.length === 0 ? (
-                                    <div className="no-data-message">
-                                        <p>❌ Không có dữ liệu câu hỏi để phân tích</p>
-                                    </div>
-                                ) : (
-                                    <table className="analysis-table">
-                                        <thead>
-                                        <tr>
-                                            <th>Phần loại câu hỏi</th>
-                                            <th>Số câu đúng</th>
-                                            <th>Số câu sai</th>
-                                            <th>Số câu bỏ qua</th>
-                                            <th>Độ chính xác</th>
-                                            <th>Danh sách câu hỏi</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        {questionGroups.map((group, index) => (
-                                            <tr key={index}>
-                                                <td className="question-type">{formatQuestionType(group.type)}</td>
-                                                <td>{group.correct}</td>
-                                                <td>{group.incorrect}</td>
-                                                <td>{group.skipped}</td>
-                                                <td>
-                                                    {(() => {
-                                                        const answeredQuestions = group.correct + group.incorrect;
-                                                        if (answeredQuestions === 0) return '0.00%';
-                                                        const accuracy = (group.correct / answeredQuestions) * 100;
-                                                        return accuracy.toFixed(2) + '%';
-                                                    })()}
-                                                </td>
-                                                <td>
-                                                    <div className="question-numbers">
-                                                        {group.questions.map((q, qIndex) => (
-                                                            <span
-                                                                key={qIndex}
-                                                                className={`question-number ${
-                                                                    q.isCorrect ? 'correct' :
-                                                                        q.hasResponse ? 'incorrect' : 'skipped'
-                                                                }`}
-                                                            >
-                                                                {q.orderInTest || q.number || q.questionId}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        <tr style={{fontWeight: 'bold', backgroundColor: '#f8f9fa'}}>
-                                            <td>Total</td>
-                                            <td>{stats.totalCorrect}</td>
-                                            <td>{stats.totalIncorrected}</td>
-                                            <td>{stats.totalSkipped}</td>
-                                            <td>{stats.accuracy.toFixed(2)}%</td>
-                                            <td>{stats.totalQuestions} questions</td>
-                                        </tr>
-                                        </tbody>
-                                    </table>
-                                )}
-
-                                {/* Answer Details */}
-                                {renderAnswerDetails()}
+                    {/* ✅ FIXED: Summary Section with accurate stats */}
+                    <div className="result-summary">
+                        <div className="summary-grid">
+                            <div className="summary-meta">
+                                <h3>✓ Kết quả làm bài</h3>
+                                <p className="accuracy-info">Độ chính xác (#đúng/#tổng): {stats.accuracy}%</p>
+                                <p className="time-info">Thời gian hoàn thành: {result.completionTime || '0:00:06'}</p>
                             </div>
-                        )}
 
-                        {activeTab === 'overview' && (
-                            <div className="overview-content">
-                                <h3>Tổng quan kết quả</h3>
-                                <div className="overview-stats">
-                                    <p>Tổng số câu hỏi: {stats.totalQuestions}</p>
-                                    <p>Số câu trả lời đúng: {stats.totalCorrect}</p>
-                                    <p>Số câu trả lời sai: {stats.totalIncorrected}</p>
-                                    <p>Số câu bỏ qua: {stats.totalSkipped}</p>
-                                    <p>Độ chính xác: {stats.accuracy}%</p>
-                                    <p>Điểm số IELTS: {stats.score}</p>
+                            <div className="summary-item">
+                                <div className="summary-label">
+                                    <span className="summary-icon check-icon">✓</span>
+                                    Trả lời đúng
                                 </div>
+                                <div className="summary-value">{stats.totalCorrect}</div>
+                                <div>câu hỏi</div>
                             </div>
-                        )}
-                    </div>
-                </div>
-            </div>
 
-            {/* ✅ Use external popup component */}
-            <QuestionDetailPopup
-                question={selectedQuestion}
-                passage={selectedPassage}
-                isOpen={isPopupOpen}
-                onClose={closePopup}
-                testName={result?.testName || 'IELTS Simulation Reading test'}
-            />
+                            <div className="summary-item">
+                                <div className="summary-label">
+                                    <span className="summary-icon close-icon">✗</span>
+                                    Trả lời sai
+                                </div>
+                                <div className="summary-value">{stats.totalIncorrected}</div>
+                                <div>câu hỏi</div>
+                            </div>
+
+                            <div className="summary-item">
+                                <div className="summary-label">
+                                    <span className="summary-icon minus-icon">−</span>
+                                    Bỏ qua
+                                </div>
+                                <div className="summary-value">{stats.totalSkipped}</div>
+                                <div>câu hỏi</div>
+                            </div>
+
+                            <div className="summary-item">
+                                <div className="summary-label">
+                                    <span className="summary-icon flag-icon">🏁</span>
+                                    Điểm
+                                </div>
+                                <div className="summary-value score">{stats.score}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Tabs Section */}
+                    <div className="result-tabs">
+                        <div className="tab-buttons">
+                            <button
+                                className={`tab-button ${activeTab === 'passage' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('passage')}
+                            >
+                                Passage
+                            </button>
+                            <button
+                                className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('overview')}
+                            >
+                                Tổng quát
+                            </button>
+                        </div>
+
+                        <div className="tab-content">
+                            {activeTab === 'passage' && (
+                                <div className="passage-content">
+                                    <h3>Phân tích chi tiết</h3>
+
+                                    {questionGroups.length === 0 ? (
+                                        <div className="no-data-message">
+                                            <p>❌ Không có dữ liệu câu hỏi để phân tích</p>
+                                        </div>
+                                    ) : (
+                                        <table className="analysis-table">
+                                            <thead>
+                                            <tr>
+                                                <th>Phần loại câu hỏi</th>
+                                                <th>Số câu đúng</th>
+                                                <th>Số câu sai</th>
+                                                <th>Số câu bỏ qua</th>
+                                                <th>Độ chính xác</th>
+                                                <th>Danh sách câu hỏi</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {questionGroups.map((group, index) => (
+                                                <tr key={index}>
+                                                    <td className="question-type">{formatQuestionType(group.type)}</td>
+                                                    <td>{group.correct}</td>
+                                                    <td>{group.incorrect}</td>
+                                                    <td>{group.skipped}</td>
+                                                    <td>
+                                                        {(() => {
+                                                            const answeredQuestions = group.correct + group.incorrect;
+                                                            if (answeredQuestions === 0) return '0.00%';
+                                                            const accuracy = (group.correct / answeredQuestions) * 100;
+                                                            return accuracy.toFixed(2) + '%';
+                                                        })()}
+                                                    </td>
+                                                    <td>
+                                                        <div className="question-numbers">
+                                                            {group.questions.map((q, qIndex) => (
+                                                                <span
+                                                                    key={qIndex}
+                                                                    className={`question-number ${
+                                                                        q.isCorrect ? 'correct' :
+                                                                            q.hasResponse ? 'incorrect' : 'skipped'
+                                                                    }`}
+                                                                >
+                                                        {q.orderInTest || q.number || q.questionId}
+                                                    </span>
+                                                            ))}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            <tr style={{fontWeight: 'bold', backgroundColor: '#f8f9fa'}}>
+                                                <td>Total</td>
+                                                <td>{stats.totalCorrect}</td>
+                                                <td>{stats.totalIncorrected}</td>
+                                                <td>{stats.totalSkipped}</td>
+                                                <td>{stats.accuracy.toFixed(2)}%</td>
+                                                <td>{stats.totalQuestions} questions</td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    )}
+
+                                    {/* Answer Details */}
+                                    {renderAnswerDetails()}
+                                </div>
+                            )}
+
+                            {activeTab === 'overview' && (
+                                <div className="overview-content">
+                                    <h3>Tổng quan kết quả</h3>
+                                    <div className="overview-stats">
+                                        <p>Tổng số câu hỏi: {stats.totalQuestions}</p>
+                                        <p>Số câu trả lời đúng: {stats.totalCorrect}</p>
+                                        <p>Số câu trả lời sai: {stats.totalIncorrected}</p>
+                                        <p>Số câu bỏ qua: {stats.totalSkipped}</p>
+                                        <p>Độ chính xác: {stats.accuracy}%</p>
+                                        <p>Điểm số IELTS: {stats.score}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ✅ Use external popup component */}
+                    <QuestionDetailPopup
+                        question={selectedQuestion}
+                        passage={selectedPassage}
+                        isOpen={isPopupOpen}
+                        onClose={closePopup}
+                        testName={result?.testName || 'IELTS Simulation Reading test'}
+                    />
+                </div>
+            )}
         </div>
     );
 }

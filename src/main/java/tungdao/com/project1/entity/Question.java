@@ -72,16 +72,6 @@ public class Question {
     @Column(name = "context", columnDefinition = "TEXT")
     private String context;
 
-    // ✅ ONLY fields that exist in DB
-    @Column(name = "speaking_part")
-    private Integer speakingPart;
-
-    @Column(name = "task_type", length = 50)
-    private String taskType;
-
-    @Column(name = "visual_material_path", length = 500)
-    private String visualMaterialPath;
-
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

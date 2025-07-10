@@ -65,10 +65,10 @@ const FlashcardHome = () => {
                     <h1 className="flashcard-home-title">
                         📚 Flashcards
                     </h1>
-                    <p className="flashcard-home-subtitle">
-                        Hệ thống học từ vựng thông minh với thuật toán <strong>Spaced Repetition</strong>,
-                        giúp bạn nhớ từ lâu hơn và học hiệu quả hơn
-                    </p>
+                    {/*<p className="flashcard-home-subtitle">*/}
+                    {/*    Hệ thống học từ vựng thông minh với thuật toán <strong>Spaced Repetition</strong>,*/}
+                    {/*    giúp bạn nhớ từ lâu hơn và học hiệu quả hơn*/}
+                    {/*</p>*/}
                 </div>
 
                 {/* Statistics Section - Only show if user is logged in */}

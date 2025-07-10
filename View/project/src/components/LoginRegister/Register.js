@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { register } from '../../api';
+import './Register.css';
 
 export default function Register() {
     const [input, setInput] = useState({
@@ -70,50 +71,51 @@ export default function Register() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100 py-8">
-            <div className="bg-white p-6 rounded-lg shadow-md w-96">
-                <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Đăng ký tài khoản</h2>
+        <div className="register-container">
+            <div className="register-card">
+                <h2 className="register-title">Tạo tài khoản</h2>
+                <p className="register-subtitle">Tham gia cộng đồng học tiếng Anh của chúng tôi</p>
 
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
+                <form onSubmit={handleSubmit} className="register-form">
+                    <div className="register-input-group">
                         <input
                             type="text"
-                            placeholder="Họ và tên"
+                            placeholder="Họ và tên đầy đủ"
                             value={input.fullName}
                             onChange={(e) => setInput({...input, fullName: e.target.value})}
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            className="register-input"
                             required
                         />
                     </div>
 
-                    <div className="mb-4">
+                    <div className="register-input-group">
                         <input
                             type="email"
-                            placeholder="Email"
+                            placeholder="Địa chỉ email"
                             value={input.email}
                             onChange={(e) => setInput({...input, email: e.target.value})}
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            className="register-input"
                             required
                         />
                     </div>
 
-                    <div className="mb-4">
+                    <div className="register-input-group">
                         <input
                             type="password"
                             placeholder="Mật khẩu (tối thiểu 6 ký tự)"
                             value={input.password}
                             onChange={(e) => setInput({...input, password: e.target.value})}
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            className="register-input"
                             minLength="6"
                             required
                         />
                     </div>
 
-                    <div className="mb-6">
+                    <div className="register-input-group">
                         <select
                             value={input.role}
                             onChange={(e) => setInput({...input, role: e.target.value})}
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            className="register-select"
                         >
                             <option value="STUDENT">🎓 Học viên</option>
                             <option value="TEACHER">👨‍🏫 Giáo viên</option>
@@ -121,7 +123,7 @@ export default function Register() {
                     </div>
 
                     {error && (
-                        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                        <div className="register-error">
                             {error}
                         </div>
                     )}
@@ -129,31 +131,38 @@ export default function Register() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-green-500 text-white p-3 rounded-lg hover:bg-green-600 disabled:bg-gray-400 transition duration-200 font-medium"
+                        className="register-button"
                     >
-                        {loading ? 'Đang đăng ký...' : 'Đăng ký'}
+                        {loading ? (
+                            <span className="register-loading-text">
+                                <span className="register-loading-spinner"></span>
+                                Đang đăng ký...
+                            </span>
+                        ) : (
+                            'Tạo tài khoản'
+                        )}
                     </button>
                 </form>
 
-                {/* ✅ SỬA: Sử dụng Link thay vì href */}
-                <p className="mt-6 text-center text-gray-600">
-                    Đã có tài khoản? {' '}
-                    <Link
-                        to="/login"
-                        className="text-blue-500 hover:text-blue-700 hover:underline font-medium"
-                    >
-                        Đăng nhập
-                    </Link>
-                </p>
+                <div className="register-links">
+                    <p className="register-login-link">
+                        Đã có tài khoản? {' '}
+                        <Link
+                            to="/login"
+                            className="register-link"
+                        >
+                            Đăng nhập ngay
+                        </Link>
+                    </p>
 
-                {/* ✅ Thêm link về trang chủ */}
-                <div className="mt-4 text-center">
-                    <Link
-                        to="/"
-                        className="text-sm text-gray-500 hover:text-gray-700 hover:underline"
-                    >
-                        ← Về trang chủ
-                    </Link>
+                    <div>
+                        <Link
+                            to="/"
+                            className="register-home-link"
+                        >
+                            ← Quay về trang chủ
+                        </Link>
+                    </div>
                 </div>
             </div>
         </div>

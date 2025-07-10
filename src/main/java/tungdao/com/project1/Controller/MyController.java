@@ -60,9 +60,6 @@ public class MyController {
     private ListeningAudioRepository listeningAudioRepository;
 
     @Autowired
-    private IeltsBandDescriptorRepository ieltsBandDescriptorRepository;
-
-    @Autowired
     private SpeakingWritingCriteriaScoreRepository speakingWritingCriteriaScoreRepository;
 
     @Autowired
@@ -202,17 +199,6 @@ public class MyController {
     @PostMapping("/listening-audio")
     public ListeningAudio createListeningAudio(@RequestBody ListeningAudio audio) {
         return listeningAudioRepository.save(audio);
-    }
-
-    // IELTS Band Descriptors
-    @GetMapping("/ielts-band-descriptors")
-    public List<IeltsBandDescriptor> getAllIeltsBandDescriptors() {
-        return ieltsBandDescriptorRepository.findAll();
-    }
-
-    @PostMapping("/ielts-band-descriptors")
-    public IeltsBandDescriptor createIeltsBandDescriptor(@RequestBody IeltsBandDescriptor descriptor) {
-        return ieltsBandDescriptorRepository.save(descriptor);
     }
 
     // Speaking Writing Criteria Scores

@@ -1,0 +1,1147 @@
+/* ✅ File: src/components/teacher/MyTestPage.css */
+/* FIXED: Separated shorthand and specific border properties to avoid React warnings */
+
+/* Base container styles */
+.page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.page-header {
+    margin-bottom: 24px;
+}
+
+.page-title {
+    font-size: 1.875rem;
+    font-weight: bold;
+    color: #1f2937;
+    margin-bottom: 8px;
+}
+
+/* Loading animations */
+.loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.loading-spinner {
+    width: 48px;
+    height: 48px;
+    border-width: 2px;
+    border-style: solid;
+    border-color: transparent transparent #3b82f6 transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Breadcrumb styling */
+.breadcrumb {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.breadcrumb button {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.breadcrumb button:hover {
+    color: #2563eb;
+}
+
+.breadcrumb .active {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.breadcrumb-separator {
+    margin: 0 8px;
+}
+
+/* Error and success messages */
+.error-message {
+    background-color: #fef2f2;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #fca5a5;
+    color: #dc2626;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+.success-message {
+    background-color: #f0fdf4;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #86efac;
+    color: #16a34a;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+/* Tests List Styles */
+.tests-list-container {
+    /* Container for entire tests list */
+}
+
+.tests-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.user-info {
+    /* Container for user welcome text */
+}
+
+.welcome-text {
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.user-name {
+    font-weight: 600;
+}
+
+.tests-count {
+    font-size: 0.875rem;
+    color: #9ca3af;
+}
+
+.create-test-btn {
+    background-color: #2563eb;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.create-test-btn:hover {
+    background-color: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.tests-grid {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+/* Test cards */
+.test-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    border-width: 1px;
+    border-style: solid;
+    border-color: #e5e7eb;
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.test-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.test-card-content {
+    padding: 24px;
+}
+
+.test-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.test-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+.test-description {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin-bottom: 16px;
+}
+
+.test-details {
+    font-size: 0.875rem;
+    color: #9ca3af;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.status-published {
+    color: #16a34a;
+}
+
+.status-draft {
+    color: #ea580c;
+}
+
+.test-card-actions {
+    padding: 12px 24px;
+    background-color: #f9fafb;
+    border-top-width: 1px;
+    border-top-style: solid;
+    border-top-color: #e5e7eb;
+    display: flex;
+    gap: 8px;
+}
+
+.view-submissions-btn {
+    flex: 1;
+    background-color: #2563eb;
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.view-submissions-btn:hover {
+    background-color: #1d4ed8;
+}
+
+.settings-btn {
+    padding: 8px 12px;
+    color: #6b7280;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.settings-btn:hover {
+    color: #1f2937;
+}
+
+/* Test type badges */
+.test-type-badge {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    border-radius: 9999px;
+    font-weight: 500;
+}
+
+.test-type-listening {
+    background-color: #f3e8ff;
+    color: #7c3aed;
+}
+
+.test-type-reading {
+    background-color: #dcfce7;
+    color: #16a34a;
+}
+
+.test-type-writing {
+    background-color: #dbeafe;
+    color: #2563eb;
+}
+
+.test-type-speaking {
+    background-color: #fed7aa;
+    color: #ea580c;
+}
+
+/* Empty state styling */
+.empty-state {
+    text-align: center;
+    padding: 48px 0;
+    color: #9ca3af;
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    display: block;
+}
+
+.empty-state-text {
+    margin-bottom: 16px;
+    font-size: 1rem;
+}
+
+.create-first-test-btn {
+    display: inline-block;
+    background-color: #2563eb;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.create-first-test-btn:hover {
+    background-color: #1d4ed8;
+}
+
+/* Submissions List Styles */
+.submissions-container {
+    /* Container for submissions */
+}
+
+.submissions-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.submissions-info {
+    /* Container for submissions title and summary */
+}
+
+.submissions-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.submissions-summary {
+    color: #6b7280;
+}
+
+.back-button {
+    background: none;
+    border: none;
+    color: #2563eb;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: color 0.2s;
+}
+
+.back-button:hover {
+    color: #1d4ed8;
+}
+
+/* Table styling */
+.submissions-table-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.submissions-table {
+    width: 100%;
+    background-color: white;
+}
+
+.submissions-table th {
+    padding: 12px 24px;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background-color: #f9fafb;
+}
+
+.submissions-table td {
+    padding: 16px 24px;
+    font-size: 0.875rem;
+    border-top-width: 1px;
+    border-top-style: solid;
+    border-top-color: #f3f4f6;
+}
+
+.submissions-table tr:hover {
+    background-color: #f9fafb;
+}
+
+.student-info {
+    /* Container for student name and email */
+}
+
+.student-name {
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 2px;
+}
+
+.student-email {
+    font-size: 0.875rem;
+    color: #9ca3af;
+}
+
+.score-display {
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.score-pending {
+    color: #9ca3af;
+}
+
+.submitted-time {
+    color: #9ca3af;
+}
+
+/* Status badges */
+.status-badge {
+    display: inline-flex;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+}
+
+.status-completed {
+    background-color: #dcfce7;
+    color: #16a34a;
+}
+
+.status-pending {
+    background-color: #fef3c7;
+    color: #d97706;
+}
+
+.action-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.action-grade {
+    color: #ea580c;
+}
+
+.action-grade:hover {
+    color: #c2410c;
+}
+
+.action-view {
+    color: #2563eb;
+}
+
+.action-view:hover {
+    color: #1d4ed8;
+}
+
+.submissions-empty {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Grading Interface Styles */
+.grading-container {
+    /* Main container for grading interface */
+}
+
+.grading-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.grading-info {
+    /* Container for grading title and subtitle */
+}
+
+.grading-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.grading-subtitle {
+    color: #6b7280;
+}
+
+.responses-list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.grading-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #e5e7eb;
+    animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.question-header {
+    margin-bottom: 16px;
+}
+
+.question-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.question-text {
+    color: #374151;
+    margin-bottom: 16px;
+}
+
+.response-section {
+    margin-bottom: 24px;
+}
+
+.response-title {
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 8px;
+}
+
+/* Audio player enhancements */
+.audio-response-container {
+    background-color: #dbeafe;
+    padding: 16px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #93c5fd;
+    margin-bottom: 16px;
+}
+
+.audio-info {
+    /* Container for audio label and player */
+}
+
+.audio-label {
+    font-size: 0.875rem;
+    color: #1e40af;
+    margin-bottom: 8px;
+}
+
+.audio-player {
+    width: 100%;
+    border-radius: 6px;
+}
+
+.audio-player::-webkit-media-controls-panel {
+    background-color: #dbeafe;
+}
+
+/* Text response styling */
+.text-response-container {
+    background-color: #f9fafb;
+    padding: 16px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #e5e7eb;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.response-text {
+    white-space: pre-wrap;
+    margin: 0;
+}
+
+.word-count {
+    font-size: 0.875rem;
+    color: #9ca3af;
+    margin-top: 8px;
+}
+
+.text-response-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.text-response-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.text-response-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.text-response-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Grading form */
+.grading-section {
+    border-top-width: 1px;
+    border-top-style: solid;
+    border-top-color: #e5e7eb;
+    padding-top: 16px;
+}
+
+.grading-section-title {
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 12px;
+}
+
+.grading-form {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.score-input-group,
+.feedback-input-group {
+    /* Individual input groups */
+}
+
+.input-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 4px;
+}
+
+.grading-input {
+    width: 100%;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #d1d5db;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.grading-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.score-input {
+    text-align: center;
+    font-weight: 600;
+}
+
+.feedback-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Criteria hints */
+.criteria-hint {
+    padding: 12px;
+    border-radius: 8px;
+    border-left-width: 4px;
+    border-left-style: solid;
+    margin-bottom: 16px;
+}
+
+.criteria-speaking {
+    background-color: #dbeafe;
+    border-left-color: #3b82f6;
+}
+
+.criteria-writing {
+    background-color: #dcfce7;
+    border-left-color: #16a34a;
+}
+
+.criteria-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.criteria-speaking .criteria-title {
+    color: #1e40af;
+}
+
+.criteria-writing .criteria-title {
+    color: #15803d;
+}
+
+.criteria-details {
+    font-size: 0.75rem;
+    margin: 0;
+}
+
+.criteria-speaking .criteria-details {
+    color: #1e40af;
+}
+
+.criteria-writing .criteria-details {
+    color: #15803d;
+}
+
+.grading-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Action buttons */
+.btn-primary {
+    background-color: #2563eb;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: #1d4ed8;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.btn-secondary {
+    background-color: #f3f4f6;
+    color: #374151;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-secondary:hover {
+    background-color: #e5e7eb;
+}
+
+.btn-success {
+    background-color: #16a34a;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-success:hover {
+    background-color: #15803d;
+}
+
+.save-grade-btn {
+    /* Specific styling for save grade button */
+}
+
+/* Grade status indicators */
+.grade-status-completed {
+    color: #16a34a;
+    background-color: #dcfce7;
+    padding: 4px 8px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.grade-status-pending {
+    color: #ea580c;
+    background-color: #fed7aa;
+    padding: 4px 8px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* Completion summary */
+.completion-summary {
+    background: linear-gradient(to right, #dbeafe, #dcfce7);
+    padding: 24px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #93c5fd;
+    text-align: center;
+    margin-top: 32px;
+}
+
+.complete-grading-btn {
+    background-color: #2563eb;
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.complete-grading-btn:hover {
+    background-color: #1d4ed8;
+}
+
+/* Animation for grade save */
+.grade-save-success {
+    animation: pulseGreen 0.6s ease-in-out;
+}
+
+@keyframes pulseGreen {
+    0% {
+        background-color: #16a34a;
+        transform: scale(1);
+    }
+    50% {
+        background-color: #15803d;
+        transform: scale(1.05);
+    }
+    100% {
+        background-color: #16a34a;
+        transform: scale(1);
+    }
+}
+
+/* Line clamping for text overflow */
+.line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .page-container {
+        padding: 16px;
+    }
+
+    .tests-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+
+    .submissions-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .grading-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .grading-form {
+        grid-template-columns: 1fr;
+    }
+
+    .submissions-table {
+        font-size: 0.75rem;
+    }
+
+    .submissions-table th,
+    .submissions-table td {
+        padding: 8px 12px;
+    }
+
+    .grading-card {
+        padding: 16px;
+    }
+
+    .tests-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ✅ NEW STYLES FOR REAL DATA FEATURES */
+
+/* Pending grading indicators */
+.pending-grading-indicator {
+    color: #ea580c;
+    font-weight: 500;
+}
+
+.pending-count {
+    color: #ea580c;
+    font-size: 0.75rem;
+    margin-left: 4px;
+}
+
+.notification-badge {
+    background-color: #dc2626;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 0.625rem;
+    margin-left: 6px;
+    min-width: 18px;
+    text-align: center;
+}
+
+/* Header actions */
+.header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.refresh-btn {
+    padding: 6px 12px;
+    font-size: 0.875rem;
+}
+
+.submissions-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Score display enhancements */
+.score-display-container {
+    /* Container for score and skill breakdown */
+}
+
+.skill-scores {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+/* Manual grading count */
+.manual-grading-count {
+    color: #ea580c;
+    font-weight: 500;
+}
+
+/* Progress indicator */
+.grading-progress {
+    background-color: #f3f4f6;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.progress-bar {
+    background-color: #e5e7eb;
+    border-radius: 4px;
+    height: 8px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    background-color: #10b981;
+    height: 100%;
+    transition: width 0.3s ease-out;
+}
+
+/* Save status indicators */
+.save-status {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-right: 8px;
+}
+
+.save-status.saving {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.save-status.saved {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.save-status.error {
+    background-color: #fef2f2;
+    color: #dc2626;
+}
+
+/* Input hints */
+.input-hint {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 4px;
+    margin-bottom: 0;
+}
+
+/* Audio details */
+.audio-details {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+/* No response state */
+.no-response {
+    text-align: center;
+    padding: 32px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    border-width: 2px;
+    border-style: dashed;
+    border-color: #d1d5db;
+}
+
+/* Grade timestamp */
+.grade-timestamp {
+    color: #9ca3af;
+    font-size: 0.75rem;
+    margin-left: 8px;
+}
+
+/* Summary content */
+.summary-content {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.summary-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.summary-text {
+    color: #6b7280;
+}
+
+.submission-time {
+    font-size: 0.875rem;
+    color: #9ca3af;
+}
+
+/* Score colors for better UX */
+.score-excellent {
+    color: #059669;
+    font-weight: 600;
+}
+
+.score-good {
+    color: #0891b2;
+    font-weight: 600;
+}
+
+.score-pass {
+    color: #ca8a04;
+    font-weight: 600;
+}
+
+.score-fail {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+/* Enhanced button states */
+.btn-disabled {
+    background-color: #f3f4f6;
+    color: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.btn-disabled:hover {
+    background-color: #f3f4f6;
+    box-shadow: none;
+    transform: none;
+}
+
+/* Loading state improvements */
+.loading-container p {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+/* Responsive improvements for new features */
+@media (max-width: 768px) {
+    .header-actions {
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .submissions-actions {
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .score-display-container {
+        font-size: 0.875rem;
+    }
+
+    .skill-scores {
+        font-size: 0.6875rem;
+    }
+
+    .notification-badge {
+        font-size: 0.5rem;
+        padding: 1px 4px;
+        min-width: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .grading-progress {
+        padding: 12px;
+    }
+
+    .progress-info {
+        font-size: 0.75rem;
+    }
+
+    .audio-details {
+        font-size: 0.6875rem;
+    }
+}

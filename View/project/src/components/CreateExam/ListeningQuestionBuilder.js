@@ -1,482 +1,12 @@
 // =====================================
-// UPDATED ListeningQuestionBuilder.js với Visual Table Editor tích hợp
+// UPDATED ListeningQuestionBuilder.js - Integrated với Simple Table Editor
 // =====================================
 
 import React, { useState, useEffect, useRef } from 'react';
+import SimpleTableEditor from './TableEditor'; // ✅ Import new simple component
 import './ListeningQuestionBuilder.css';
 
-// Visual Table Editor Component
-const VisualTableEditor = ({ context, onContextChange, questionCounter, setQuestionCounter }) => {
-    const [tables, setTables] = useState([]);
-    const [selectedCell, setSelectedCell] = useState(null);
-
-    useEffect(() => {
-        if (context && tables.length === 0) {
-            parseTextToTables(context);
-        }
-    }, [context]);
-
-    const addNewTable = () => {
-        const newTable = {
-            id: `table_${Date.now()}`,
-            title: `Table ${tables.length + 1}`,
-            data: [
-                ['Course Name', 'Duration', 'Price', 'Start Date'],
-                ['', '6 weeks', '', 'March 15'],
-                ['Advanced', '', '$300', ''],
-                ['Professional', '12 weeks', '', 'April 20']
-            ],
-            columnWidths: [120, 100, 80, 120],
-            rowHeights: [40, 35, 35, 35],
-            hasHeaders: true
-        };
-        const newTables = [...tables, newTable];
-        setTables(newTables);
-        generateTextFromTables(newTables);
-    };
-
-    const updateCell = (tableId, rowIndex, colIndex, value) => {
-        const newTables = tables.map(table => {
-            if (table.id === tableId) {
-                const newData = [...table.data];
-                newData[rowIndex] = [...newData[rowIndex]];
-                newData[rowIndex][colIndex] = value;
-                return { ...table, data: newData };
-            }
-            return table;
-        });
-        setTables(newTables);
-        generateTextFromTables(newTables);
-    };
-
-    const addRow = (tableId) => {
-        const newTables = tables.map(table => {
-            if (table.id === tableId) {
-                const newRow = Array(table.data[0].length).fill('');
-                const newData = [...table.data, newRow];
-                const newRowHeights = [...table.rowHeights, 35];
-                return { ...table, data: newData, rowHeights: newRowHeights };
-            }
-            return table;
-        });
-        setTables(newTables);
-        generateTextFromTables(newTables);
-    };
-
-    const addColumn = (tableId) => {
-        const newTables = tables.map(table => {
-            if (table.id === tableId) {
-                const newData = table.data.map(row => [...row, '']);
-                const newColumnWidths = [...table.columnWidths, 100];
-                return { ...table, data: newData, columnWidths: newColumnWidths };
-            }
-            return table;
-        });
-        setTables(newTables);
-        generateTextFromTables(newTables);
-    };
-
-    const deleteRow = (tableId, rowIndex) => {
-        const newTables = tables.map(table => {
-            if (table.id === tableId && table.data.length > 1) {
-                const newData = table.data.filter((_, index) => index !== rowIndex);
-                const newRowHeights = table.rowHeights.filter((_, index) => index !== rowIndex);
-                return { ...table, data: newData, rowHeights: newRowHeights };
-            }
-            return table;
-        });
-        setTables(newTables);
-        generateTextFromTables(newTables);
-    };
-
-    const deleteColumn = (tableId, colIndex) => {
-        const newTables = tables.map(table => {
-            if (table.id === tableId && table.data[0].length > 1) {
-                const newData = table.data.map(row => row.filter((_, index) => index !== colIndex));
-                const newColumnWidths = table.columnWidths.filter((_, index) => index !== colIndex);
-                return { ...table, data: newData, columnWidths: newColumnWidths };
-            }
-            return table;
-        });
-        setTables(newTables);
-        generateTextFromTables(newTables);
-    };
-
-    const setAsQuestion = (tableId, rowIndex, colIndex) => {
-        const questionPlaceholder = `___${questionCounter}___`;
-        updateCell(tableId, rowIndex, colIndex, questionPlaceholder);
-        setQuestionCounter(prev => prev + 1);
-    };
-
-    const resizeColumn = (tableId, colIndex, newWidth) => {
-        const newTables = tables.map(table => {
-            if (table.id === tableId) {
-                const newColumnWidths = [...table.columnWidths];
-                newColumnWidths[colIndex] = Math.max(50, newWidth);
-                return { ...table, columnWidths: newColumnWidths };
-            }
-            return table;
-        });
-        setTables(newTables);
-    };
-
-    const generateTextFromTables = (tablesToConvert = tables) => {
-        let text = '';
-        tablesToConvert.forEach((table, tableIndex) => {
-            if (tableIndex > 0) text += '\n\n';
-
-            text += `${table.title}\n\n`;
-
-            table.data.forEach((row, rowIndex) => {
-                const cells = row.map(cell => cell || '');
-                text += `| ${cells.join(' | ')} |\n`;
-
-                if (rowIndex === 0 && table.hasHeaders) {
-                    const separator = cells.map(() => '-------').join('|');
-                    text += `|${separator}|\n`;
-                }
-            });
-        });
-
-        onContextChange(text);
-    };
-
-    const parseTextToTables = (text) => {
-        const lines = text.split('\n');
-        const newTables = [];
-        let currentTable = null;
-        let currentTitle = '';
-
-        lines.forEach(line => {
-            const trimmedLine = line.trim();
-
-            if (trimmedLine && !trimmedLine.includes('|') && !trimmedLine.includes('-')) {
-                currentTitle = trimmedLine;
-            } else if (trimmedLine.includes('|') && !trimmedLine.includes('---')) {
-                const cells = trimmedLine.split('|').map(cell => cell.trim()).filter(cell => cell !== '');
-
-                if (!currentTable) {
-                    currentTable = {
-                        id: `table_${Date.now()}_${newTables.length}`,
-                        title: currentTitle || `Table ${newTables.length + 1}`,
-                        data: [],
-                        columnWidths: cells.map(() => 120),
-                        rowHeights: [],
-                        hasHeaders: true
-                    };
-                }
-
-                currentTable.data.push(cells);
-                currentTable.rowHeights.push(currentTable.data.length === 1 ? 40 : 35);
-            } else if (trimmedLine === '' && currentTable) {
-                newTables.push(currentTable);
-                currentTable = null;
-                currentTitle = '';
-            }
-        });
-
-        if (currentTable) {
-            newTables.push(currentTable);
-        }
-
-        if (newTables.length > 0) {
-            setTables(newTables);
-        }
-    };
-
-    const isQuestionCell = (value) => {
-        return /___\d+___/.test(value);
-    };
-
-    const renderTable = (table) => {
-        return (
-            <div key={table.id} style={{ marginBottom: '20px', border: '1px solid #dee2e6', borderRadius: '8px', overflow: 'hidden' }}>
-                {/* Table Header */}
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '10px 15px',
-                    background: '#f8f9fa',
-                    borderBottom: '1px solid #dee2e6'
-                }}>
-                    <input
-                        type="text"
-                        value={table.title}
-                        onChange={(e) => {
-                            const newTables = tables.map(t =>
-                                t.id === table.id ? { ...t, title: e.target.value } : t
-                            );
-                            setTables(newTables);
-                            generateTextFromTables(newTables);
-                        }}
-                        style={{
-                            border: 'none',
-                            background: 'transparent',
-                            fontSize: '16px',
-                            fontWeight: 'bold',
-                            color: '#495057',
-                            width: '200px'
-                        }}
-                    />
-
-                    <div style={{ display: 'flex', gap: '5px' }}>
-                        <button
-                            onClick={() => addRow(table.id)}
-                            style={{
-                                padding: '4px 8px',
-                                border: '1px solid #007bff',
-                                background: '#007bff',
-                                color: 'white',
-                                borderRadius: '3px',
-                                cursor: 'pointer',
-                                fontSize: '11px'
-                            }}
-                        >
-                            + Row
-                        </button>
-                        <button
-                            onClick={() => addColumn(table.id)}
-                            style={{
-                                padding: '4px 8px',
-                                border: '1px solid #28a745',
-                                background: '#28a745',
-                                color: 'white',
-                                borderRadius: '3px',
-                                cursor: 'pointer',
-                                fontSize: '11px'
-                            }}
-                        >
-                            + Col
-                        </button>
-                        <button
-                            onClick={() => {
-                                const newTables = tables.filter(t => t.id !== table.id);
-                                setTables(newTables);
-                                generateTextFromTables(newTables);
-                            }}
-                            style={{
-                                padding: '4px 8px',
-                                border: '1px solid #dc3545',
-                                background: '#dc3545',
-                                color: 'white',
-                                borderRadius: '3px',
-                                cursor: 'pointer',
-                                fontSize: '11px'
-                            }}
-                        >
-                            🗑️
-                        </button>
-                    </div>
-                </div>
-
-                {/* Table Grid */}
-                <div style={{ background: 'white' }}>
-                    {table.data.map((row, rowIndex) => (
-                        <div key={rowIndex} style={{
-                            display: 'flex',
-                            minHeight: `${table.rowHeights[rowIndex]}px`,
-                            background: rowIndex === 0 && table.hasHeaders ? '#f8f9fa' : 'white'
-                        }}>
-                            {/* Row controls */}
-                            <div style={{
-                                width: '25px',
-                                background: '#e9ecef',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '10px',
-                                color: '#6c757d',
-                                borderRight: '1px solid #dee2e6'
-                            }}>
-                                <span>{rowIndex + 1}</span>
-                                {table.data.length > 1 && (
-                                    <button
-                                        onClick={() => deleteRow(table.id, rowIndex)}
-                                        style={{
-                                            background: 'none',
-                                            border: 'none',
-                                            color: '#dc3545',
-                                            cursor: 'pointer',
-                                            fontSize: '8px'
-                                        }}
-                                    >
-                                        ×
-                                    </button>
-                                )}
-                            </div>
-
-                            {row.map((cell, colIndex) => (
-                                <div
-                                    key={`${rowIndex}-${colIndex}`}
-                                    style={{
-                                        width: `${table.columnWidths[colIndex]}px`,
-                                        minHeight: `${table.rowHeights[rowIndex]}px`,
-                                        border: '1px solid #dee2e6',
-                                        position: 'relative',
-                                        background: isQuestionCell(cell) ? '#fff3cd' : 'transparent'
-                                    }}
-                                >
-                                    {/* Column resizer */}
-                                    <div
-                                        style={{
-                                            position: 'absolute',
-                                            right: '-2px',
-                                            top: '0',
-                                            width: '4px',
-                                            height: '100%',
-                                            cursor: 'col-resize',
-                                            background: 'transparent',
-                                            zIndex: 2
-                                        }}
-                                        onMouseDown={(e) => {
-                                            e.preventDefault();
-                                            const startX = e.clientX;
-                                            const startWidth = table.columnWidths[colIndex];
-
-                                            const handleMouseMove = (e) => {
-                                                const newWidth = startWidth + (e.clientX - startX);
-                                                resizeColumn(table.id, colIndex, newWidth);
-                                            };
-
-                                            const handleMouseUp = () => {
-                                                document.removeEventListener('mousemove', handleMouseMove);
-                                                document.removeEventListener('mouseup', handleMouseUp);
-                                            };
-
-                                            document.addEventListener('mousemove', handleMouseMove);
-                                            document.addEventListener('mouseup', handleMouseUp);
-                                        }}
-                                    />
-
-                                    {/* Cell input */}
-                                    <input
-                                        type="text"
-                                        value={cell}
-                                        onChange={(e) => updateCell(table.id, rowIndex, colIndex, e.target.value)}
-                                        onFocus={() => setSelectedCell({ tableId: table.id, row: rowIndex, col: colIndex })}
-                                        onBlur={() => setTimeout(() => setSelectedCell(null), 200)}
-                                        style={{
-                                            width: '100%',
-                                            height: '100%',
-                                            border: 'none',
-                                            padding: '6px',
-                                            background: 'transparent',
-                                            fontSize: '12px',
-                                            fontWeight: rowIndex === 0 && table.hasHeaders ? 'bold' : 'normal',
-                                            outline: selectedCell?.tableId === table.id && selectedCell?.row === rowIndex && selectedCell?.col === colIndex
-                                                ? '2px solid #007bff' : 'none'
-                                        }}
-                                        placeholder={rowIndex === 0 && table.hasHeaders ? 'Header' : 'Data...'}
-                                    />
-
-                                    {/* Cell context menu */}
-                                    {selectedCell?.tableId === table.id && selectedCell?.row === rowIndex && selectedCell?.col === colIndex && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            top: '100%',
-                                            left: '0',
-                                            background: 'white',
-                                            border: '1px solid #ccc',
-                                            borderRadius: '3px',
-                                            padding: '3px',
-                                            zIndex: 10,
-                                            display: 'flex',
-                                            gap: '3px',
-                                            boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
-                                        }}>
-                                            <button
-                                                onClick={() => setAsQuestion(table.id, rowIndex, colIndex)}
-                                                style={{
-                                                    padding: '2px 6px',
-                                                    border: '1px solid #ffc107',
-                                                    background: '#ffc107',
-                                                    color: '#212529',
-                                                    borderRadius: '2px',
-                                                    cursor: 'pointer',
-                                                    fontSize: '10px'
-                                                }}
-                                            >
-                                                Q{questionCounter}
-                                            </button>
-                                            <button
-                                                onClick={() => updateCell(table.id, rowIndex, colIndex, '')}
-                                                style={{
-                                                    padding: '2px 6px',
-                                                    border: '1px solid #6c757d',
-                                                    background: '#6c757d',
-                                                    color: 'white',
-                                                    borderRadius: '2px',
-                                                    cursor: 'pointer',
-                                                    fontSize: '10px'
-                                                }}
-                                            >
-                                                Clear
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-    };
-
-    return (
-        <div>
-            <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: '14px', color: '#495057', fontWeight: 'bold' }}>📊 Visual Table Editor</div>
-                <button
-                    onClick={addNewTable}
-                    style={{
-                        padding: '6px 12px',
-                        border: '1px solid #007bff',
-                        background: '#007bff',
-                        color: 'white',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '12px'
-                    }}
-                >
-                    + Add Table
-                </button>
-            </div>
-
-            {tables.length === 0 ? (
-                <div style={{
-                    textAlign: 'center',
-                    padding: '40px',
-                    color: '#6c757d',
-                    border: '2px dashed #dee2e6',
-                    borderRadius: '8px'
-                }}>
-                    <div style={{ fontSize: '32px', marginBottom: '10px' }}>📊</div>
-                    <p style={{ margin: '0 0 10px 0' }}>No tables yet</p>
-                    <button
-                        onClick={addNewTable}
-                        style={{
-                            padding: '8px 16px',
-                            border: '1px solid #007bff',
-                            background: '#007bff',
-                            color: 'white',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Create First Table
-                    </button>
-                </div>
-            ) : (
-                tables.map(renderTable)
-            )}
-        </div>
-    );
-};
-
-// Các loại câu hỏi Listening với Visual Table Editor
+// ✅ UPDATED Question Types với simple table editor
 const LISTENING_QUESTION_TYPES = [
     {
         id: 'note_completion',
@@ -487,7 +17,7 @@ const LISTENING_QUESTION_TYPES = [
         subType: 'NOTE_COMPLETION',
         instructions: 'Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.',
         requiresContext: true,
-        supportsVisualEditor: false,
+        supportsSimpleEditor: false,
         contextHint: `📝 Example format:
 
 Notes on Adult Education Classes
@@ -501,16 +31,6 @@ Book Club
 ___4___ Group
 —Learn about local events last century
 
-Wednesday:
-Scrabble Club ___5___
-—popular
-
-Thursday:
-Chess Night
-—serious
-___6___
-—For special occasions
-
 💡 TIP: Use ___1___, ___2___, etc. to mark question positions`
     },
     {
@@ -522,7 +42,7 @@ ___6___
         subType: 'FORM_FILLING',
         instructions: 'Complete the form below. Write NO MORE THAN THREE WORDS AND/OR A NUMBER for each answer.',
         requiresContext: true,
-        supportsVisualEditor: false,
+        supportsSimpleEditor: false,
         contextHint: `📋 Example format:
 
 REGISTRATION FORM
@@ -541,24 +61,32 @@ Special requirements: ___8___
     {
         id: 'table_completion',
         name: 'Table Completion',
-        description: 'Hoàn thành bảng',
+        description: 'Hoàn thành bảng - Simple Visual Editor',
         defaultCount: 5,
         type: 'FILL_IN_THE_BLANK',
         subType: 'TABLE_COMPLETION',
         instructions: 'Complete the table below. Write NO MORE THAN THREE WORDS AND/OR A NUMBER for each answer.',
         requiresContext: true,
-        supportsVisualEditor: true, // ✅ Enable Visual Editor for Table Completion
-        contextHint: `📊 Use the Visual Table Editor above or example format:
+        supportsSimpleEditor: true, // ✅ Enable Simple Table Editor
+        contextHint: `📊 Simple Table Editor Features:
 
-Course Information
+🎯 One-Click Question Creation:
+- Click any cell to make it a question
+- Auto-numbering and validation
+- Visual feedback immediately
+- No markdown or JSON required
 
-| Course Name | Duration | Price | Start Date |
-|-------------|----------|-------|------------|
-| ___1___ | 6 weeks | ___2___ | March 15 |
-| Advanced | ___3___ | $300 | ___4___ |
-| Professional | 12 weeks | ___5___ | April 20 |
+✨ Intuitive Interface:
+- Drag to resize (coming soon)
+- Add/remove rows & columns easily
+- Preview mode for student view
+- Auto-save every second
 
-💡 TIP: Use Visual Editor for easy table creation!`
+💡 Much easier than before:
+- No complex JSON editing
+- No markdown syntax needed
+- Just click and create!
+- Perfect for teachers who want simplicity`
     },
     {
         id: 'plan_map_completion',
@@ -569,7 +97,7 @@ Course Information
         subType: 'PLAN_MAP_COMPLETION',
         instructions: 'Complete the labels on the plan below. Write NO MORE THAN TWO WORDS for each answer.',
         requiresContext: true,
-        supportsVisualEditor: false,
+        supportsSimpleEditor: false,
         contextHint: `🗺️ Example format:
 
 LIBRARY FLOOR PLAN
@@ -597,7 +125,7 @@ ___4___
         subType: 'MCQ',
         instructions: 'Choose the correct letter, A, B or C.',
         requiresContext: false,
-        supportsVisualEditor: false
+        supportsSimpleEditor: false
     },
     {
         id: 'matching_listening',
@@ -608,7 +136,7 @@ ___4___
         subType: 'MATCHING',
         instructions: 'Match each speaker with the correct statement. Write the correct letter, A-H, next to questions.',
         requiresContext: false,
-        supportsVisualEditor: false
+        supportsSimpleEditor: false
     },
     {
         id: 'short_answer_listening',
@@ -619,7 +147,7 @@ ___4___
         subType: 'SHORT_ANSWER',
         instructions: 'Answer the questions below. Write NO MORE THAN THREE WORDS for each answer.',
         requiresContext: false,
-        supportsVisualEditor: false
+        supportsSimpleEditor: false
     },
     {
         id: 'flexible_context',
@@ -630,7 +158,7 @@ ___4___
         subType: 'FLEXIBLE_CONTEXT',
         instructions: 'Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.',
         requiresContext: true,
-        supportsVisualEditor: false,
+        supportsSimpleEditor: false,
         contextHint: `🎯 Paste any IELTS listening context here...
 
 For example:
@@ -659,12 +187,11 @@ const ListeningQuestionBuilder = ({
                                   }) => {
     const [selectedText, setSelectedText] = useState({});
     const [selectionRange, setSelectionRange] = useState({});
-    const [editorMode, setEditorMode] = useState({}); // Track editor mode per set
     const textareaRefs = useRef({});
 
     // ✅ Debug effect to log context loading
     useEffect(() => {
-        console.log('=== LISTENING QUESTION BUILDER DEBUG ===');
+        console.log('=== LISTENING QUESTION BUILDER DEBUG (SIMPLE EDITOR) ===');
         console.log('Question sets count:', questionSets.length);
         questionSets.forEach((set, idx) => {
             console.log(`Set ${idx + 1}:`, {
@@ -676,7 +203,8 @@ const ListeningQuestionBuilder = ({
                 contextLength: set.context?.length || 0,
                 contextPreview: set.context ? set.context.substring(0, 100) + '...' : 'empty',
                 requiresContext: set.requiresContext,
-                questionsCount: set.questions?.length || 0
+                questionsCount: set.questions?.length || 0,
+                supportsSimpleEditor: set.supportsSimpleEditor
             });
         });
     }, [questionSets]);
@@ -694,6 +222,23 @@ const ListeningQuestionBuilder = ({
     };
 
     const extractQuestionTextFromContext = (context, questionNumber, selectedText) => {
+        // For JSON context, try to parse it first
+        try {
+            const parsed = JSON.parse(context);
+            if (parsed.type === 'ielts_table_completion') {
+                // Extract question from table structure
+                const question = parsed.questions.find(q => q.questionNumber === questionNumber);
+                if (question) {
+                    const pos = question.position;
+                    return `Complete the table - ${parsed.title} (Row ${pos.row + 1}, Column ${pos.col + 1})`;
+                }
+                return `Table completion question ${questionNumber}`;
+            }
+        } catch (e) {
+            // Not JSON, proceed with text parsing
+        }
+
+        // Original text-based parsing
         const parts = context.split(/___(\d+)___/);
         let questionText = '';
 
@@ -724,6 +269,33 @@ const ListeningQuestionBuilder = ({
     };
 
     const extractQuestionsFromContext = (contextText, setId) => {
+        // ✅ Enhanced: Handle JSON table structure
+        try {
+            const parsed = JSON.parse(contextText);
+            if (parsed.type === 'ielts_table_completion' && parsed.questions) {
+                console.log('✅ Extracting questions from JSON table structure (Simple Editor)');
+
+                const extractedQuestions = parsed.questions.map(tableQ => ({
+                    id: `q_${setId}_${tableQ.questionNumber}`,
+                    questionNumber: tableQ.questionNumber,
+                    questionText: `Complete the table - ${parsed.title || 'Table'} (Row ${tableQ.position.row + 1}, Col ${tableQ.position.col + 1})`,
+                    questionType: 'FILL_IN_THE_BLANK',
+                    options: [],
+                    correctAnswer: tableQ.correctAnswer || '',
+                    explanation: '',
+                    alternativeAnswers: tableQ.alternativeAnswers || '',
+                    context: contextText
+                }));
+
+                console.log('✅ Extracted', extractedQuestions.length, 'questions from JSON table (Simple Editor)');
+                return extractedQuestions.sort((a, b) => a.questionNumber - b.questionNumber);
+            }
+        } catch (e) {
+            // Not JSON, proceed with text parsing
+            console.log('Context is not JSON table, using text parsing (Simple Editor)');
+        }
+
+        // Original text-based parsing for non-JSON contexts
         const questionMatches = contextText.match(/___(\d+)___/g) || [];
         const extractedQuestions = questionMatches.map(match => {
             const number = parseInt(match.replace(/___/g, ''));
@@ -837,16 +409,11 @@ const ListeningQuestionBuilder = ({
             contextHint: setType.contextHint || '',
             startQuestionNumber: getNextQuestionNumber(),
             requiresContext: setType.requiresContext || false,
-            supportsVisualEditor: setType.supportsVisualEditor || false
+            supportsSimpleEditor: setType.supportsSimpleEditor || false // ✅ Track Simple Editor support
         };
 
         setQuestionSets([...questionSets, newSet]);
         setExpandedQuestionSet(newSetId);
-
-        // ✅ Set default editor mode for Table Completion to visual
-        if (setType.supportsVisualEditor) {
-            setEditorMode(prev => ({ ...prev, [newSetId]: 'visual' }));
-        }
     };
 
     const handleTextSelection = (setId) => {
@@ -1038,12 +605,6 @@ const ListeningQuestionBuilder = ({
         if (expandedQuestionSet === setId) {
             setExpandedQuestionSet(null);
         }
-        // ✅ Clean up editor mode
-        setEditorMode(prev => {
-            const newMode = { ...prev };
-            delete newMode[setId];
-            return newMode;
-        });
     };
 
     const toggleExpandSet = (setId) => {
@@ -1051,7 +612,7 @@ const ListeningQuestionBuilder = ({
     };
 
     const updateQuestionSetContext = (setId, context) => {
-        console.log(`=== UPDATE CONTEXT DEBUG ===`);
+        console.log(`=== UPDATE CONTEXT DEBUG (SIMPLE EDITOR) ===`);
         console.log(`Set ID: ${setId}`);
         console.log(`New context length: ${context?.length || 0}`);
         console.log(`New context preview: ${context?.substring(0, 100) || 'empty'}`);
@@ -1087,7 +648,7 @@ const ListeningQuestionBuilder = ({
         setQuestionSets(updatedSets);
 
         // ✅ CRITICAL: Sync back to form immediately with proper context
-        console.log('Syncing to form after context update...');
+        console.log('Syncing to form after context update (Simple Editor)...');
         syncQuestionsFromSetsWithContext(updatedSets);
     };
 
@@ -1097,7 +658,7 @@ const ListeningQuestionBuilder = ({
             return;
         }
 
-        console.log('=== SYNC QUESTIONS WITH CONTEXT TO FORM ===');
+        console.log('=== SYNC QUESTIONS WITH CONTEXT TO FORM (SIMPLE EDITOR) ===');
         console.log('Input sets:', sets.length);
 
         const flatQuestions = sets.flatMap((set, setIndex) => {
@@ -1144,7 +705,7 @@ const ListeningQuestionBuilder = ({
             });
         });
 
-        console.log('\n=== FINAL QUESTIONS TO SEND TO FORM ===');
+        console.log('\n=== FINAL QUESTIONS TO SEND TO FORM (SIMPLE EDITOR) ===');
         console.log('Total questions:', flatQuestions.length);
 
         // ✅ VALIDATION: Check context in final questions
@@ -1164,36 +725,7 @@ const ListeningQuestionBuilder = ({
 
         // ✅ SET TO FORM
         setValue('questions', flatQuestions);
-        console.log('✅ Context synced to form successfully');
-    };
-
-    const syncQuestionsFromSets = (sets) => {
-        if (typeof setValue !== 'function') {
-            console.warn('setValue function not available - cannot sync to form');
-            return;
-        }
-
-        const flatQuestions = sets.flatMap((set, setIndex) => {
-            return set.questions.map((q, qIndex) => {
-                return {
-                    question_id: q.id,
-                    question_text: q.questionText || '',
-                    question_type: q.questionType || set.type,
-                    correct_answer: q.correctAnswer || '',
-                    order_in_test: q.orderInTest || q.questionNumber || (setIndex * 10 + qIndex + 1),
-                    explanation: q.explanation || '',
-                    alternative_answers: q.alternativeAnswers || '',
-                    question_set_instructions: set.instructions || '',
-                    // ✅ CRITICAL: Include context
-                    context: set.context || q.context || '',
-                    audio_id: set.audioId ? parseInt(set.audioId, 10) : null,
-                    options: set.type === 'MCQ' ? (Array.isArray(q.options) ? q.options : ['', '', '', '']) : (q.options || [])
-                };
-            });
-        });
-
-        console.log('Syncing questions with context to form:', flatQuestions.length, 'questions');
-        setValue('questions', flatQuestions);
+        console.log('✅ Context synced to form successfully (Simple Editor)');
     };
 
     const updateQuestionSetInstructions = (setId, instructions) => {
@@ -1273,12 +805,11 @@ const ListeningQuestionBuilder = ({
         setQuestionSets(updatedSets);
     };
 
-    // ✅ UPDATED: renderContextEditor with Visual Table Editor integration
+    // ✅ UPDATED: renderContextEditor with Simple Table Editor integration
     const renderContextEditor = (set) => {
         const selection = selectedText[set.id];
-        const currentEditorMode = editorMode[set.id] || 'text';
 
-        // ✅ FIXED: Show context editor for all context-based question types, including edit mode
+        // ✅ FIXED: Show context editor for all context-based question types
         const shouldShowContext = set.requiresContext ||
             ['NOTE_COMPLETION', 'FORM_FILLING', 'TABLE_COMPLETION', 'PLAN_MAP_COMPLETION', 'FLEXIBLE_CONTEXT'].includes(set.subType) ||
             (set.type === 'FILL_IN_THE_BLANK' && (set.context || set.contextHint));
@@ -1290,7 +821,7 @@ const ListeningQuestionBuilder = ({
             hasContext: !!(set.context),
             hasContextHint: !!(set.contextHint),
             type: set.type,
-            supportsVisualEditor: set.supportsVisualEditor
+            supportsSimpleEditor: set.supportsSimpleEditor
         });
 
         if (!shouldShowContext) {
@@ -1311,46 +842,24 @@ const ListeningQuestionBuilder = ({
                     </div>
 
                     <div className="context-actions">
-                        {/* ✅ Editor Mode Switcher for Table Completion */}
-                        {set.supportsVisualEditor && (
+                        {/* ✅ Simple Editor Badge for Table Completion */}
+                        {set.supportsSimpleEditor && (
                             <div style={{ display: 'flex', gap: '5px', marginRight: '10px' }}>
-                                <button
-                                    type="button"
-                                    className={`mode-btn ${currentEditorMode === 'visual' ? 'active' : ''}`}
-                                    onClick={() => setEditorMode(prev => ({ ...prev, [set.id]: 'visual' }))}
-                                    style={{
-                                        padding: '4px 8px',
-                                        border: `1px solid ${currentEditorMode === 'visual' ? '#007bff' : '#dee2e6'}`,
-                                        background: currentEditorMode === 'visual' ? '#007bff' : 'white',
-                                        color: currentEditorMode === 'visual' ? 'white' : '#495057',
-                                        borderRadius: '3px',
-                                        cursor: 'pointer',
-                                        fontSize: '11px'
-                                    }}
-                                >
-                                    📊 Visual
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`mode-btn ${currentEditorMode === 'text' ? 'active' : ''}`}
-                                    onClick={() => setEditorMode(prev => ({ ...prev, [set.id]: 'text' }))}
-                                    style={{
-                                        padding: '4px 8px',
-                                        border: `1px solid ${currentEditorMode === 'text' ? '#007bff' : '#dee2e6'}`,
-                                        background: currentEditorMode === 'text' ? '#007bff' : 'white',
-                                        color: currentEditorMode === 'text' ? 'white' : '#495057',
-                                        borderRadius: '3px',
-                                        cursor: 'pointer',
-                                        fontSize: '11px'
-                                    }}
-                                >
-                                    📝 Text
-                                </button>
+                                <span style={{
+                                    padding: '4px 8px',
+                                    background: '#10b981',
+                                    color: 'white',
+                                    borderRadius: '3px',
+                                    fontSize: '11px',
+                                    fontWeight: 'bold'
+                                }}>
+                                    ✨ Simple Editor
+                                </span>
                             </div>
                         )}
 
-                        {/* Text Editor Actions */}
-                        {currentEditorMode === 'text' && (
+                        {/* Text Editor Actions (for non-table types) */}
+                        {!set.supportsSimpleEditor && (
                             <>
                                 {selection && (
                                     <>
@@ -1403,7 +912,7 @@ const ListeningQuestionBuilder = ({
                     </div>
                 </div>
 
-                {currentEditorMode === 'text' && selection && (
+                {!set.supportsSimpleEditor && selection && (
                     <div className="selection-banner">
                         <div className="banner-left">
                             <span className="selection-icon">🎯</span>
@@ -1427,9 +936,9 @@ const ListeningQuestionBuilder = ({
                 )}
 
                 <div className="context-input-wrapper">
-                    {/* ✅ Visual Editor for Table Completion */}
-                    {set.supportsVisualEditor && currentEditorMode === 'visual' ? (
-                        <VisualTableEditor
+                    {/* ✅ Simple Table Editor for Table Completion */}
+                    {set.supportsSimpleEditor ? (
+                        <SimpleTableEditor
                             context={set.context || ''}
                             onContextChange={(newContext) => updateQuestionSetContext(set.id, newContext)}
                             questionCounter={getNextQuestionNumber()}
@@ -1465,8 +974,8 @@ const ListeningQuestionBuilder = ({
                 <div className="context-hint">
                     <span className="hint-icon">💡</span>
                     <span className="hint-text">
-                        {set.supportsVisualEditor && currentEditorMode === 'visual'
-                            ? "Use Visual Editor to create tables like Excel - click cells and use 'Q{number}' to mark as questions"
+                        {set.supportsSimpleEditor
+                            ? "Simple Table Editor - Click any cell to make it a question. Much easier than before!"
                             : set.subType === 'FLEXIBLE_CONTEXT'
                                 ? "Paste any IELTS context → Select text for answers → Click 'Set as Question'"
                                 : "Use ___1___, ___2___, etc. to mark question positions"
@@ -1518,6 +1027,9 @@ const ListeningQuestionBuilder = ({
                     <h5 className="questions-title">
                         <span className="title-icon">📝</span>
                         Questions ({set.questions.length})
+                        {set.supportsSimpleEditor && (
+                            <span className="simple-badge">Simple Editor</span>
+                        )}
                     </h5>
                 </div>
 
@@ -1597,6 +1109,7 @@ const ListeningQuestionBuilder = ({
             case 'MCQ':
                 return (
                     <div className="mcq-fields">
+                        {/* Options Input */}
                         {['A', 'B', 'C', 'D'].map((option, optIdx) => (
                             <div key={optIdx} className="mcq-option">
                                 <label>{option}:</label>
@@ -1608,16 +1121,42 @@ const ListeningQuestionBuilder = ({
                                 />
                             </div>
                         ))}
-                        <div className="correct-answer">
-                            <label>Correct Answer:</label>
+
+                        {/* ✅ FIX: ENSURE Correct Answer Selection is ALWAYS VISIBLE */}
+                        <div className="correct-answer-selection" style={{
+                            marginTop: '15px',
+                            padding: '10px',
+                            backgroundColor: '#f8f9fa',
+                            borderRadius: '5px',
+                            border: '2px solid #007bff'
+                        }}>
+                            <label style={{ fontWeight: 'bold', marginBottom: '8px', display: 'block' }}>
+                                🎯 Đáp án đúng:
+                            </label>
                             <select
                                 value={question.correctAnswer || 'A'}
                                 onChange={(e) => updateQuestion(set.id, qIdx, 'correctAnswer', e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '8px',
+                                    fontSize: '16px',
+                                    border: '1px solid #ccc',
+                                    borderRadius: '4px'
+                                }}
                             >
                                 {['A', 'B', 'C', 'D'].map(opt => (
-                                    <option key={opt} value={opt}>{opt}</option>
+                                    <option key={opt} value={opt}>
+                                        {opt} {question.options && question.options[['A', 'B', 'C', 'D'].indexOf(opt)]
+                                        ? `- ${question.options[['A', 'B', 'C', 'D'].indexOf(opt)].substring(0, 30)}${question.options[['A', 'B', 'C', 'D'].indexOf(opt)].length > 30 ? '...' : ''}`
+                                        : '(chưa nhập nội dung)'}
+                                    </option>
                                 ))}
                             </select>
+
+                            {/* Visual feedback */}
+                            <div style={{ marginTop: '8px', fontSize: '14px', color: '#6c757d' }}>
+                                Đáp án hiện tại: <strong style={{ color: '#007bff' }}>{question.correctAnswer || 'A'}</strong>
+                            </div>
                         </div>
                     </div>
                 );
@@ -1753,9 +1292,9 @@ const ListeningQuestionBuilder = ({
                                 <span className="question-count">
                                     {type.subType === 'FLEXIBLE_CONTEXT' ? 'Flexible' : `${type.defaultCount} questions`}
                                 </span>
-                                {/* ✅ Visual Editor Badge */}
-                                {type.supportsVisualEditor && (
-                                    <span className="visual-editor-badge">📊 Visual Editor</span>
+                                {/* ✅ Simple Editor Badge */}
+                                {type.supportsSimpleEditor && (
+                                    <span className="simple-editor-badge">✨ Simple Editor</span>
                                 )}
                             </div>
                         </button>
@@ -1778,9 +1317,9 @@ const ListeningQuestionBuilder = ({
                                     <span className="set-type-badge">{set.subType}</span>
                                     <h4>{set.name}</h4>
                                     <span className="question-count">{set.questions.length} questions</span>
-                                    {/* ✅ Visual Editor Indicator */}
-                                    {set.supportsVisualEditor && (
-                                        <span className="visual-indicator">📊</span>
+                                    {/* ✅ Simple Editor Indicator */}
+                                    {set.supportsSimpleEditor && (
+                                        <span className="simple-indicator">✨ Simple</span>
                                     )}
                                 </div>
                                 <div className="set-actions">
@@ -1828,7 +1367,7 @@ const ListeningQuestionBuilder = ({
                                         </select>
                                     </div>
 
-                                    {/* Context Editor with Visual Table Editor */}
+                                    {/* Context Editor with Simple Table Editor */}
                                     {renderContextEditor(set)}
 
                                     {/* Questions Container */}
@@ -1861,42 +1400,57 @@ const ListeningQuestionBuilder = ({
                 </div>
             )}
 
-            {/* Help Section */}
+            {/* Enhanced Help Section */}
             <div className="help-section">
                 <details>
-                    <summary>💡 Quick Guide: Visual Table Editor for Table Completion</summary>
+                    <summary>💡 Enhanced Guide: Simple Table Editor vs Traditional Methods</summary>
                     <div className="help-content">
-                        <h4>🚀 How to use Visual Table Editor:</h4>
-                        <ol>
-                            <li><strong>Choose "Table Completion"</strong> from question types above</li>
-                            <li><strong>Switch to "Visual" mode</strong> in the context editor</li>
-                            <li><strong>Create tables</strong> like Excel - click cells to edit</li>
-                            <li><strong>Mark questions</strong> by clicking cells and selecting "Q[number]"</li>
-                            <li><strong>Resize columns</strong> by dragging borders</li>
-                            <li><strong>Add/Remove</strong> rows and columns with buttons</li>
-                            <li><strong>Switch to "Text" mode</strong> to see generated markdown</li>
-                        </ol>
-
-                        <div className="help-features">
-                            <div className="feature">
-                                <strong>📊 Visual Benefits:</strong>
+                        <h4>✨ Simple Table Editor Benefits:</h4>
+                        <div className="help-comparison">
+                            <div className="comparison-column">
+                                <h5>📊 Simple Editor (NEW)</h5>
                                 <ul>
-                                    <li>No markdown syntax needed</li>
-                                    <li>Real-time preview</li>
-                                    <li>Drag to resize columns</li>
-                                    <li>Click to mark questions</li>
+                                    <li>✅ <strong>One-click questions</strong> - just click any cell</li>
+                                    <li>✅ <strong>Visual editing</strong> - like Excel/Google Sheets</li>
+                                    <li>✅ <strong>Auto-numbering</strong> - no manual counting</li>
+                                    <li>✅ <strong>Live preview</strong> - see student view instantly</li>
+                                    <li>✅ <strong>Auto-save</strong> - never lose your work</li>
+                                    <li>✅ <strong>No syntax</strong> - no markdown or JSON needed</li>
                                 </ul>
                             </div>
-                            <div className="feature">
-                                <strong>🎯 Best Practices:</strong>
+                            <div className="comparison-column">
+                                <h5>📝 Old Methods</h5>
                                 <ul>
-                                    <li>Keep table headers clear</li>
-                                    <li>Use realistic data</li>
-                                    <li>Mark 20-30% of cells as questions</li>
-                                    <li>Test with preview mode</li>
+                                    <li>❌ Manual ___1___ typing</li>
+                                    <li>❌ Markdown syntax errors</li>
+                                    <li>❌ JSON complexity</li>
+                                    <li>❌ No visual feedback</li>
+                                    <li>❌ Easy to make mistakes</li>
+                                    <li>❌ Technical knowledge required</li>
                                 </ul>
                             </div>
                         </div>
+
+                        <h4>🎯 How to use Simple Table Editor:</h4>
+                        <ol>
+                            <li><strong>Choose "Table Completion"</strong> from question types</li>
+                            <li><strong>Edit table data</strong> - type in cells like Excel</li>
+                            <li><strong>Click any cell</strong> to convert it to a question</li>
+                            <li><strong>Orange cells</strong> are questions with auto-numbers</li>
+                            <li><strong>Fill in correct answers</strong> in the right panel</li>
+                            <li><strong>Click Preview</strong> to see student view</li>
+                            <li><strong>Auto-saves</strong> every second - no manual save needed</li>
+                        </ol>
+
+                        <h4>📱 Much Better for Teachers:</h4>
+                        <ul>
+                            <li>No technical skills required</li>
+                            <li>Intuitive like Google Sheets</li>
+                            <li>Instant visual feedback</li>
+                            <li>Perfect table rendering for students</li>
+                            <li>Mobile-friendly editing</li>
+                            <li>Zero syntax errors possible</li>
+                        </ul>
                     </div>
                 </details>
             </div>

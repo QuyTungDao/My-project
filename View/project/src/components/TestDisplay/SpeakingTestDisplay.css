@@ -476,9 +476,10 @@
     flex-wrap: wrap;
 }
 
-.record-btn,
-.stop-btn,
-.play-btn {
+/* Recording buttons - all same size and shape */
+.recording-buttons .record-btn,
+.recording-buttons .stop-btn,
+.recording-buttons .play-btn {
     padding: 0.75rem 1.5rem;
     border: none;
     border-radius: 8px;
@@ -487,32 +488,34 @@
     cursor: pointer;
     transition: all 0.3s ease;
     min-width: 150px;
+    text-align: center;
+    display: inline-block;
 }
 
-.record-btn {
+.recording-buttons .record-btn {
     background: #dc2626;
     color: white;
 }
 
-.record-btn:hover {
+.recording-buttons .record-btn:hover {
     background: #b91c1c;
 }
 
-.stop-btn {
+.recording-buttons .stop-btn {
     background: #374151;
     color: white;
 }
 
-.stop-btn:hover {
+.recording-buttons .stop-btn:hover {
     background: #1f2937;
 }
 
-.play-btn {
+.recording-buttons .play-btn {
     background: #059669;
     color: white;
 }
 
-.play-btn:hover {
+.recording-buttons .play-btn:hover {
     background: #047857;
 }
 
@@ -550,10 +553,10 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.nav-btn {
-    background: #f1f5f9;
-    border: 1px solid #cbd5e1;
-    color: #475569;
+.question-navigation .nav-btn {
+    background: #7c3aed !important;
+    border: 1px solid #7c3aed !important;
+    color: white !important;
     padding: 0.75rem 1.5rem;
     border-radius: 8px;
     cursor: pointer;
@@ -561,12 +564,16 @@
     transition: all 0.3s ease;
 }
 
-.nav-btn:hover:not(:disabled) {
-    background: #e2e8f0;
+.question-navigation .nav-btn:hover:not(:disabled) {
+    background: #6d28d9 !important;
+    border-color: #6d28d9 !important;
 }
 
-.nav-btn:disabled {
-    opacity: 0.5;
+.question-navigation .nav-btn:disabled {
+    background: #94a3b8 !important;
+    border-color: #94a3b8 !important;
+    color: white !important;
+    opacity: 0.7;
     cursor: not-allowed;
 }
 
@@ -645,9 +652,20 @@
 }
 
 .recording-item .play-btn {
+    background: #059669;
+    color: white;
+    border: none;
     padding: 0.5rem 1rem;
+    border-radius: 8px;
     font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
     min-width: auto;
+}
+
+.recording-item .play-btn:hover {
+    background: #047857;
 }
 
 .submit-test-btn {
@@ -733,9 +751,9 @@
         align-items: center;
     }
 
-    .record-btn,
-    .stop-btn,
-    .play-btn {
+    .recording-buttons .record-btn,
+    .recording-buttons .stop-btn,
+    .recording-buttons .play-btn {
         width: 100%;
         max-width: 250px;
     }

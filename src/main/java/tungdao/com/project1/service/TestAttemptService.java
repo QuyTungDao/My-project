@@ -1,9 +1,12 @@
 package tungdao.com.project1.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import tungdao.com.project1.dto.TestAttemptDTO;
 import tungdao.com.project1.entity.StudentResponse;
 import tungdao.com.project1.entity.TestAttempt;
 import tungdao.com.project1.entity.User;
+import tungdao.com.project1.mapper.TestAttemptMapper;
 import tungdao.com.project1.repository.TestAttemptRepository;
 
 import java.time.LocalDate;
@@ -13,9 +16,12 @@ import java.util.stream.Collectors;
 @Service
 public class TestAttemptService {
     private final TestAttemptRepository testAttemptRepository;
+    private final TestAttemptMapper testAttemptMapper;
 
-    public TestAttemptService(TestAttemptRepository tar) {
+    @Autowired
+    public TestAttemptService(TestAttemptRepository tar, TestAttemptMapper mapper) {
         this.testAttemptRepository = tar;
+        this.testAttemptMapper = mapper;
     }
 
     public TestAttempt saveTestAttempt(TestAttempt attempt) {
@@ -29,6 +35,15 @@ public class TestAttemptService {
 
         if (attempt != null) {
             System.out.println("Found attempt: " + attempt.getId());
+
+            // ✅ DEBUG: Log grading fields from entity
+            System.out.println("=== ENTITY GRADING DEBUG ===");
+            System.out.println("Grading Status: " + attempt.getGradingStatus());
+            System.out.println("Overall Score: " + attempt.getOverallScore());
+            System.out.println("Total Score: " + attempt.getTotalScore());
+            System.out.println("Grader: " + (attempt.getGrader() != null ? attempt.getGrader().getFullName() : "null"));
+            System.out.println("Graded At: " + attempt.getGradedAt());
+            System.out.println("Overall Feedback: " + attempt.getOverallFeedback());
 
             // ✅ FORCE LOAD responses to avoid lazy loading issues
             if (attempt.getResponses() != null) {
@@ -50,20 +65,80 @@ public class TestAttemptService {
         return attempt;
     }
 
+    // ✅ NEW METHOD: Get TestAttempt as DTO with proper mapping
+    public TestAttemptDTO getTestAttemptDTOById(Integer id) {
+        System.out.println("=== SERVICE: Getting TestAttemptDTO by ID: " + id + " ===");
+
+        TestAttempt attempt = getTestAttemptById(id);
+        if (attempt == null) {
+            return null;
+        }
+
+        // ✅ Use the proper mapper
+        TestAttemptDTO dto = testAttemptMapper.toDTO(attempt);
+
+        // ✅ MANUAL GRADING FIELDS MAPPING (as backup)
+        if (dto != null) {
+            // Map grading fields manually to ensure they're set
+            if (attempt.getGrader() != null) {
+                dto.setGraderId(attempt.getGrader().getId());
+                dto.setGraderName(attempt.getGrader().getFullName());
+            }
+            dto.setGradedAt(attempt.getGradedAt());
+            dto.setOverallFeedback(attempt.getOverallFeedback());
+            dto.setOverallScore(attempt.getOverallScore());
+
+            // Set grading status
+            if (attempt.getGradingStatus() != null) {
+                dto.setGradingStatus(attempt.getGradingStatus().getCode());
+            } else {
+                dto.setGradingStatus("PENDING");
+            }
+
+            // Set final score
+            if (attempt.getOverallScore() != null) {
+                dto.setFinalScore(attempt.getOverallScore());
+            } else {
+                dto.setFinalScore(attempt.getTotalScore());
+            }
+
+            // Set test type
+            if (attempt.getTest() != null && attempt.getTest().getTestType() != null) {
+                dto.setTestType(attempt.getTest().getTestType().name());
+            }
+
+            // ✅ DEBUG: Log DTO grading fields
+            System.out.println("=== DTO GRADING DEBUG ===");
+            System.out.println("DTO Grading Status: " + dto.getGradingStatus());
+            System.out.println("DTO Overall Score: " + dto.getOverallScore());
+            System.out.println("DTO Final Score: " + dto.getFinalScore());
+            System.out.println("DTO Grader ID: " + dto.getGraderId());
+            System.out.println("DTO Grader Name: " + dto.getGraderName());
+            System.out.println("DTO Graded At: " + dto.getGradedAt());
+        }
+
+        return dto;
+    }
+
     public List<TestAttempt> getTestAttemptsByUserId(Integer userId) {
         System.out.println("=== SERVICE: Getting TestAttempts for user: " + userId + " ===");
 
-        // 🔧 FIX: Use query với FETCH JOIN thay vì simple query
-        List<TestAttempt> attempts = testAttemptRepository.findByStudentIdOrderByStartTimeDesc(userId);
+        List<TestAttempt> attempts = testAttemptRepository.findByStudentIdWithResponsesOrderByStartTimeDesc(userId);
 
-        // 🔧 Manually initialize collections to avoid lazy loading issues
+        // Optional: Force load lazy collection
         for (TestAttempt attempt : attempts) {
             if (attempt.getResponses() != null) {
-                attempt.getResponses().size(); // Force initialization
+                attempt.getResponses().size();
             }
         }
 
-        return testAttemptRepository.findByStudentIdWithResponsesOrderByStartTimeDesc(userId);
+        return attempts;
+    }
+
+    // ✅ NEW METHOD: Get TestAttempts as DTOs for user
+    public List<TestAttemptDTO> getTestAttemptDTOsByUserId(Integer userId) {
+        List<TestAttempt> attempts = getTestAttemptsByUserId(userId);
+        return testAttemptMapper.toDTOList(attempts);
     }
 
     public List<TestAttempt> getTestAttemptsByTestId(Integer testId) {
@@ -176,9 +251,7 @@ public class TestAttemptService {
         return streak;
     }
 
-    /**
-     * Create empty test statistics
-     */
+
     private Map<String, Object> createEmptyTestStats() {
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalTests", 0);

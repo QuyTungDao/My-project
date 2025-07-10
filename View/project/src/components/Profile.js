@@ -651,7 +651,7 @@ export default function Profile() {
                                                     </td>
                                                     <td style={{ padding: '16px 24px' }}>
                                                         <button
-                                                            onClick={() => navigate(`/test-result/${test.id}`)}
+                                                            onClick={() => navigate(`/test-results/${test.id}`)}
                                                             style={{ color: '#2563eb', fontSize: '0.875rem', fontWeight: '500', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'none' }}
                                                             onMouseOver={(e) => e.target.style.color = '#1d4ed8'}
                                                             onMouseOut={(e) => e.target.style.color = '#2563eb'}

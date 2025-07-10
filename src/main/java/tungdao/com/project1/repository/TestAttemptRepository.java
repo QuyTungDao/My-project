@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import tungdao.com.project1.entity.StudentResponse;
 import tungdao.com.project1.entity.Test;
 import tungdao.com.project1.entity.TestAttempt;
 import tungdao.com.project1.entity.User;
@@ -152,4 +153,12 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Intege
             "WHERE ta.student.id = :studentId " +
             "ORDER BY ta.startTime DESC")
     List<TestAttempt> findByStudentIdWithResponsesOrderByStartTimeDesc(@Param("studentId") Integer studentId);
+
+    @Query("SELECT sr FROM StudentResponse sr WHERE sr.attempt.id = :attemptId ORDER BY sr.question.orderInTest")
+    List<StudentResponse> findByAttemptIdOrderByQuestionOrder(@Param("attemptId") Integer attemptId);
+
+    @Query("SELECT sr FROM StudentResponse sr WHERE sr.manualScore IS NULL AND sr.attempt.test.creator.id = :teacherId AND (sr.audioBase64 IS NOT NULL OR (sr.responseText IS NOT NULL AND sr.question.questionType IN ('ESSAY', 'WRITING_TASK1_ACADEMIC', 'WRITING_TASK1_GENERAL', 'WRITING_TASK2', 'SPEAKING_TASK', 'SPEAKING_PART1', 'SPEAKING_PART2', 'SPEAKING_PART3')))")
+    List<StudentResponse> findPendingGradingByTeacher(@Param("teacherId") Integer teacherId);
+
+    List<TestAttempt> findByTestIdOrderByEndTimeDesc(Integer testId);
 }

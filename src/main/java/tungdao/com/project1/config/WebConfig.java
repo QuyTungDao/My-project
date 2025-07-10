@@ -17,7 +17,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    // ✅ TEMPORARY FIX: Disable credentials to avoid CORS conflict
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")

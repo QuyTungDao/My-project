@@ -7,6 +7,8 @@ public enum QuestionType {
     FILL_IN_THE_BLANK,
     TRUE_FALSE_NOT_GIVEN,
     SHORT_ANSWER,
+    LISTENING_SHORT_ANSWER,
+    LISTENING_FILL_IN_THE_BLANK,
 
     // Writing types (specific tasks)
     ESSAY,

@@ -29,9 +29,6 @@ public class ListeningAudio {
     @Column(nullable = false)
     private String title;
 
-    @Column(name = "file_path", nullable = true)
-    private String filePath;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "file_type")
     private AudioFileType fileType;
@@ -191,7 +188,6 @@ public class ListeningAudio {
         System.out.println("File size: " + this.fileSize + " bytes");
         System.out.println("MIME type: " + this.mimeType);
         System.out.println("Effective MIME type: " + this.getEffectiveMimeType());
-        System.out.println("File path: " + this.filePath);
 
         // Computed properties
         System.out.println("hasBase64Data(): " + this.hasBase64Data());
@@ -201,9 +197,6 @@ public class ListeningAudio {
             System.err.println("⚠️ WARNING: Base64 data appears to be corrupted!");
         }
 
-        if (!hasBase64Data() && (this.filePath == null || this.filePath.trim().isEmpty())) {
-            System.err.println("⚠️ WARNING: No audio data source available!");
-        }
 
         System.out.println("================================");
     }

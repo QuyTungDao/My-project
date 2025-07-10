@@ -859,15 +859,16 @@ button {
 }
 
 .mcq-options {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 15px;
 }
 
 .mcq-option {
     display: flex;
     align-items: center;
+    gap: 10px;
 }
 
 .mcq-option label {
@@ -885,24 +886,29 @@ button {
 }
 
 .correct-answer {
-    grid-column: span 2;
     display: flex;
     align-items: center;
-    margin-top: 5px;
+    gap: 10px;
+    margin-top: 15px;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
 }
 
 .correct-answer label {
-    min-width: 100px;
     font-weight: 500;
     color: #333;
+    min-width: 100px;
 }
 
 .correct-answer select {
-    padding: 8px;
+    padding: 8px 12px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
     background-color: white;
+    cursor: pointer;
 }
 
 .btn-remove-question {
@@ -1275,4 +1281,35 @@ button {
         flex-direction: column;
         gap: 5px;
     }
+}
+
+/* Thêm vào CreateExamPage.css */
+.question-set-instructions textarea {
+    min-height: 300px !important;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+    padding: 12px !important;
+    border-radius: 6px !important;
+    border: 2px solid #e0e0e0 !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    resize: vertical !important;
+}
+
+.question-set-instructions textarea:focus {
+    border-color: #007bff !important;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1) !important;
+    outline: none !important;
+}
+
+.question-set-instructions textarea::placeholder {
+    color: #999 !important;
+    font-style: italic !important;
+}
+
+.question-set-instructions label {
+    display: block !important;
+    margin-bottom: 8px !important;
+    font-weight: 600 !important;
+    color: #333 !important;
+    font-size: 15px !important;
 }

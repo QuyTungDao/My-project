@@ -2,13 +2,9 @@ package tungdao.com.project1.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tungdao.com.project1.dto.StudentResponseDTO;
 import tungdao.com.project1.dto.TestAttemptRequest;
 import tungdao.com.project1.entity.*;
-import tungdao.com.project1.repository.QuestionRepository;
-import tungdao.com.project1.repository.TestAttemptRepository;
-import tungdao.com.project1.repository.TestRepository;
-import tungdao.com.project1.repository.UserRepository;
+import tungdao.com.project1.repository.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,6 +17,7 @@ public class TestSubmissionService {
     private final TestRepository testRepository;
     private final UserRepository userRepository;
     private final QuestionRepository questionRepository;
+    private final StudentResponseRepository studentResponseRepository;
     private final CorrectAnswerService correctAnswerService;
     private final TestScoreMappingService testScoreMappingService;
 
@@ -28,189 +25,189 @@ public class TestSubmissionService {
                                  TestRepository testRepository,
                                  UserRepository userRepository,
                                  QuestionRepository questionRepository,
+                                 StudentResponseRepository studentResponseRepository,
                                  CorrectAnswerService correctAnswerService,
                                  TestScoreMappingService testScoreMappingService) {
         this.testAttemptRepository = testAttemptRepository;
         this.testRepository = testRepository;
         this.userRepository = userRepository;
         this.questionRepository = questionRepository;
+        this.studentResponseRepository = studentResponseRepository;
         this.correctAnswerService = correctAnswerService;
         this.testScoreMappingService = testScoreMappingService;
     }
 
     @Transactional
     public TestAttempt submitTest(Integer userId, TestAttemptRequest request) {
-        System.out.println("=== BẮT ĐẦU CHẤM BÀI (ENHANCED) ===");
-        System.out.println("User ID: " + userId);
-        System.out.println("Test ID: " + request.getTestId());
-        System.out.println("Số câu trả lời nhận được: " + request.getResponses().size());
+        try {
+            System.out.println("=== ENHANCED AUDIO SUBMISSION SERVICE ===");
+            System.out.println("User ID: " + userId);
+            System.out.println("Test ID: " + request.getTestId());
+            System.out.println("Total responses: " + request.getResponses().size());
 
-        // 1. Lấy thông tin cần thiết
-        User student = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
-        Test test = testRepository.findById(request.getTestId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài test"));
+            // Validate input
+            if (request.getTestId() == null) {
+                throw new IllegalArgumentException("Test ID cannot be null");
+            }
+            if (request.getResponses() == null || request.getResponses().isEmpty()) {
+                throw new IllegalArgumentException("Responses cannot be empty");
+            }
 
-        // ✅ 2. Lấy TẤT CẢ câu hỏi của bài test để kiểm tra câu bỏ qua
-        List<Question> allTestQuestions = questionRepository.findByTestIdOrderByOrderInTest(request.getTestId());
-        System.out.println("Tổng số câu hỏi trong bài test: " + allTestQuestions.size());
+            // Get entities
+            User student = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+            Test test = testRepository.findById(request.getTestId())
+                    .orElseThrow(() -> new RuntimeException("Test not found with ID: " + request.getTestId()));
 
-        // ✅ 3. Tạo Map để dễ lookup responses
-        Map<Integer, StudentResponseDTO> responseMap = new HashMap<>();
-        for (StudentResponseDTO responseDTO : request.getResponses()) {
-            responseMap.put(responseDTO.getQuestionId(), responseDTO);
+            System.out.println("✅ Found user: " + student.getEmail());
+            System.out.println("✅ Found test: " + test.getTestName() + " (Type: " + test.getTestType() + ")");
+
+            // Create TestAttempt
+            TestAttempt attempt = new TestAttempt();
+            attempt.setStudent(student);
+            attempt.setTest(test);
+            attempt.setStartTime(request.getStartTime() != null ? request.getStartTime() : LocalDateTime.now().minusMinutes(30));
+            attempt.setEndTime(LocalDateTime.now());
+            attempt.setIsCompleted(true);
+
+            // Process responses with enhanced audio support
+            List<StudentResponse> responses = processEnhancedResponses(request.getResponses(), attempt, test);
+
+            // Save attempt first
+            attempt = testAttemptRepository.save(attempt);
+            System.out.println("✅ TestAttempt saved with ID: " + attempt.getId());
+
+            // Save responses with attempt reference
+            Set<StudentResponse> savedResponses = new HashSet<>();
+            for (StudentResponse response : responses) {
+                response.setAttempt(attempt);
+                StudentResponse savedResponse = studentResponseRepository.save(response);
+                savedResponses.add(savedResponse);
+
+                System.out.println("✅ Saved response for Q" + response.getQuestion().getId() +
+                        " (Type: " + response.getResponseType() + ")");
+            }
+
+            attempt.setResponses(savedResponses);
+
+            // Calculate scores
+            calculateTestScores(attempt, responses, test);
+
+            // Save final attempt with scores
+            attempt = testAttemptRepository.save(attempt);
+
+            System.out.println("=== SUBMISSION COMPLETED ===");
+            System.out.println("Total Score: " + attempt.getTotalScore());
+            System.out.println("Responses saved: " + savedResponses.size());
+
+            return attempt;
+
+        } catch (Exception e) {
+            System.err.println("❌ Error in submitTest: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to submit test: " + e.getMessage(), e);
         }
+    }
 
-        // 4. Tạo TestAttempt
-        TestAttempt attempt = new TestAttempt();
-        attempt.setStudent(student);
-        attempt.setTest(test);
-        attempt.setStartTime(LocalDateTime.now().minusMinutes(30));
-        attempt.setEndTime(LocalDateTime.now());
-        attempt.setIsCompleted(true);
+    private List<StudentResponse> processEnhancedResponses(List<TestAttemptRequest.ResponseData> responsesData,
+                                                           TestAttempt attempt, Test test) {
+        List<StudentResponse> responses = new ArrayList<>();
 
-        // ✅ 5. Chấm từng câu hỏi với enhanced logging
-        Map<String, Integer> scoresByType = new HashMap<>();
-        int totalCorrect = 0;
-        int totalIncorrect = 0;
-        int totalSkipped = 0;
-        int totalQuestions = allTestQuestions.size();
-        Set<StudentResponse> responses = new HashSet<>();
+        // Count response types for logging
+        int audioResponses = 0;
+        int textResponses = 0;
 
-        for (Question question : allTestQuestions) {
-            StudentResponseDTO userResponse = responseMap.get(question.getId());
+        for (TestAttemptRequest.ResponseData responseData : responsesData) {
+            try {
+                Question question = questionRepository.findById(responseData.getQuestionId())
+                        .orElseThrow(() -> new RuntimeException("Question not found: " + responseData.getQuestionId()));
 
-            boolean isCorrect = false;
-            boolean isSkipped = false;
-            String responseText = "";
+                StudentResponse response = new StudentResponse();
+                response.setQuestion(question);
+                response.setStudent(attempt.getStudent());
+                response.setSubmittedAt(LocalDateTime.now());
 
-            if (userResponse == null ||
-                    userResponse.getResponseText() == null ||
-                    userResponse.getResponseText().trim().isEmpty()) {
-                // ✅ Câu bỏ qua
-                isSkipped = true;
-                totalSkipped++;
-                responseText = null;
-                System.out.println("Question " + question.getId() + ": SKIPPED");
-            } else {
-                // ✅ Câu có trả lời - cần chấm điểm
-                responseText = userResponse.getResponseText().trim();
+                // ✅ ENHANCED: Handle both text and audio responses
+                if (responseData.hasAudioResponse()) {
+                    // Audio response (Speaking test)
+                    response.setAudioBase64(responseData.getAudioResponse());
+                    response.setAudioDurationSeconds(responseData.getAudioDuration());
+                    response.setAudioFileType(responseData.getAudioFileType());
+                    response.setAudioFileSize(responseData.getAudioFileSize());
+                    response.setAudioMimeType(responseData.getAudioMimeType());
+                    response.setResponseType(ResponseType.AUDIO);
+                    response.setResponseText(null); // Clear text for audio responses
 
-                CorrectAnswer correctAnswer = correctAnswerService.getByQuestionId(question.getId());
+                    // Audio responses require manual grading
+                    response.setIsCorrect(null); // Will be graded manually
 
-                if (correctAnswer != null) {
-                    // ✅ ENHANCED: Better answer checking
-                    isCorrect = checkAnswer(responseText, correctAnswer);
+                    audioResponses++;
+                    System.out.println("📻 Audio response for Q" + question.getId() +
+                            " - Duration: " + responseData.getAudioDuration() + "s, " +
+                            "Size: " + formatFileSize(responseData.getAudioFileSize()));
 
-                    System.out.println("Question " + question.getId() + ":");
-                    System.out.println("  User Answer: '" + responseText + "'");
-                    System.out.println("  Correct Answer: '" + correctAnswer.getCorrectAnswerText() + "'");
-                    System.out.println("  Result: " + (isCorrect ? "✅ CORRECT" : "❌ INCORRECT"));
+                } else if (responseData.hasTextResponse()) {
+                    // Text response (Reading/Listening)
+                    response.setResponseText(responseData.getResponseText().trim());
+                    response.setResponseType(ResponseType.TEXT);
+                    response.setAudioBase64(null); // Clear audio for text responses
 
-                    if (isCorrect) {
-                        totalCorrect++;
-
-                        // ✅ CRITICAL: Determine question category properly
-                        String questionType = determineQuestionCategory(question, test);
-                        scoresByType.put(questionType, scoresByType.getOrDefault(questionType, 0) + 1);
-                        System.out.println("  ✅ Incremented " + questionType + " to: " + scoresByType.get(questionType));
+                    // Auto-grade text responses if possible
+                    if (isObjectiveQuestion(question)) {
+                        CorrectAnswer correctAnswer = correctAnswerService.getByQuestionId(question.getId());
+                        if (correctAnswer != null) {
+                            boolean isCorrect = checkAnswer(response.getResponseText(), correctAnswer);
+                            response.setIsCorrect(isCorrect);
+                            System.out.println("📝 Text response for Q" + question.getId() +
+                                    " - Answer: '" + response.getResponseText() + "' -> " +
+                                    (isCorrect ? "CORRECT" : "INCORRECT"));
+                        } else {
+                            response.setIsCorrect(false);
+                            System.out.println("📝 Text response for Q" + question.getId() + " - No answer key");
+                        }
                     } else {
-                        totalIncorrect++;
+                        // Subjective text questions (essays) need manual grading
+                        response.setIsCorrect(null);
+                        System.out.println("📝 Subjective text response for Q" + question.getId() + " - Manual grading required");
                     }
+
+                    textResponses++;
                 } else {
-                    System.out.println("Question " + question.getId() + ": No correct answer found");
-                    totalIncorrect++;
+                    // Empty response - skip saving
+                    System.out.println("⚠️ Empty response for Q" + question.getId() + " - skipping");
+                    continue;
                 }
+
+                responses.add(response);
+
+            } catch (Exception e) {
+                System.err.println("❌ Error processing response for Q" + responseData.getQuestionId() + ": " + e.getMessage());
+                // Continue processing other responses
             }
-
-            // ✅ Tạo StudentResponse cho TẤT CẢ câu hỏi (kể cả bỏ qua)
-            StudentResponse response = new StudentResponse();
-            response.setAttempt(attempt);
-            response.setStudent(student);
-            response.setQuestion(question);
-            response.setResponseText(responseText);
-            response.setIsCorrect(isCorrect);
-            response.setSubmittedAt(LocalDateTime.now());
-
-            responses.add(response);
         }
 
-        attempt.setResponses(responses);
+        System.out.println("=== RESPONSE PROCESSING SUMMARY ===");
+        System.out.println("Audio responses: " + audioResponses);
+        System.out.println("Text responses: " + textResponses);
+        System.out.println("Total processed: " + responses.size());
 
-        System.out.println("=== PROCESSING SUMMARY ===");
-        System.out.println("Total Questions: " + totalQuestions);
-        System.out.println("Total Answered: " + (totalCorrect + totalIncorrect));
-        System.out.println("Total Correct: " + totalCorrect);
-        System.out.println("Total Incorrect: " + totalIncorrect);
-        System.out.println("Total Skipped: " + totalSkipped);
-        System.out.println("Scores by type: " + scoresByType);
-
-        // ✅ 6. ENHANCED: Calculate scores with debugging
-        System.out.println("=== CALCULATING IELTS SCORES (ENHANCED) ===");
-
-        if (scoresByType.isEmpty()) {
-            // ✅ FALLBACK: If no categorized scores, use test type
-            String testType = determineTestType(test);
-            System.out.println("No categorized scores, using fallback test type: " + testType);
-            scoresByType.put(testType.toLowerCase(), totalCorrect);
-        }
-
-        calculateAndSetScores(attempt, test, scoresByType, totalCorrect);
-
-        // 7. Lưu vào database
-        TestAttempt savedAttempt = testAttemptRepository.save(attempt);
-
-        // 8. Enhanced verification
-        verifyAttemptData(savedAttempt, totalQuestions, totalCorrect, totalIncorrect, totalSkipped);
-
-        System.out.println("✅ SUCCESS - Saved attempt ID: " + savedAttempt.getId() + " with score: " + savedAttempt.getTotalScore());
-        return savedAttempt;
+        return responses;
     }
 
-    // ✅ ENHANCED: Verify with skipped count
-    private void verifyAttemptData(TestAttempt savedAttempt, int totalQuestions, int totalCorrect, int totalIncorrect, int totalSkipped) {
-        System.out.println("=== VERIFICATION ===");
-        System.out.println("Final Total Score: " + savedAttempt.getTotalScore());
-        System.out.println("Final Reading Score: " + savedAttempt.getReadingScore());
-        System.out.println("Expected Total Questions: " + totalQuestions);
-        System.out.println("Expected Correct: " + totalCorrect);
-        System.out.println("Expected Incorrect: " + totalIncorrect);
-        System.out.println("Expected Skipped: " + totalSkipped);
-        System.out.println("Actual Responses Count: " + (savedAttempt.getResponses() != null ? savedAttempt.getResponses().size() : 0));
-
-        if (savedAttempt.getResponses() != null) {
-            int actualCorrect = 0;
-            int actualIncorrect = 0;
-            int actualSkipped = 0;
-
-            for (StudentResponse response : savedAttempt.getResponses()) {
-                if (response.getResponseText() == null || response.getResponseText().trim().isEmpty()) {
-                    actualSkipped++;
-                } else if (response.getIsCorrect()) {
-                    actualCorrect++;
-                } else {
-                    actualIncorrect++;
-                }
-            }
-
-            System.out.println("Actual Correct: " + actualCorrect);
-            System.out.println("Actual Incorrect: " + actualIncorrect);
-            System.out.println("Actual Skipped: " + actualSkipped);
-
-            if (actualCorrect == totalCorrect && actualIncorrect == totalIncorrect && actualSkipped == totalSkipped) {
-                System.out.println("✅ SUCCESS - All counts match!");
-            } else {
-                System.out.println("❌ MISMATCH - Counts don't match!");
-            }
+    private boolean isObjectiveQuestion(Question question) {
+        if (question.getQuestionType() == null) {
+            return true; // Default to objective
         }
 
-        System.out.println("======================");
-    }
-
-    // ✅ Normalize answer for better comparison
-    private String normalizeAnswer(String answer) {
-        if (answer == null) return "";
-        return answer.toLowerCase().trim().replaceAll("\\s+", " ");
+        QuestionType type = question.getQuestionType();
+        return type != QuestionType.ESSAY &&
+                type != QuestionType.WRITING_TASK1_ACADEMIC &&
+                type != QuestionType.WRITING_TASK1_GENERAL &&
+                type != QuestionType.WRITING_TASK2 &&
+                type != QuestionType.SPEAKING_TASK &&
+                type != QuestionType.SPEAKING_PART1 &&
+                type != QuestionType.SPEAKING_PART2 &&
+                type != QuestionType.SPEAKING_PART3;
     }
 
     private boolean checkAnswer(String userResponse, CorrectAnswer correctAnswer) {
@@ -218,19 +215,19 @@ public class TestSubmissionService {
             return false;
         }
 
-        String normalizedUserResponse = normalizeAnswer(userResponse);
-        String correctAnswerText = normalizeAnswer(correctAnswer.getCorrectAnswerText());
+        String normalizedUser = userResponse.toLowerCase().trim();
+        String normalizedCorrect = correctAnswer.getCorrectAnswerText().toLowerCase().trim();
 
         // Check main answer
-        if (normalizedUserResponse.equals(correctAnswerText)) {
+        if (normalizedUser.equals(normalizedCorrect)) {
             return true;
         }
 
-        // Check alternative answers
+        // Check alternatives
         if (correctAnswer.getAlternativeAnswers() != null) {
             String[] alternatives = correctAnswer.getAlternativeAnswers().split(",");
             for (String alt : alternatives) {
-                if (normalizedUserResponse.equals(normalizeAnswer(alt))) {
+                if (normalizedUser.equals(alt.trim().toLowerCase())) {
                     return true;
                 }
             }
@@ -239,141 +236,67 @@ public class TestSubmissionService {
         return false;
     }
 
-    // ✅ Determine question category for scoring
-    private String determineQuestionCategory(Question question, Test test) {
-        String testType = determineTestType(test);
+    private void calculateTestScores(TestAttempt attempt, List<StudentResponse> responses, Test test) {
+        System.out.println("=== CALCULATING SCORES WITH AUDIO SUPPORT ===");
 
-        if ("LISTENING".equals(testType)) {
-            return "listening";
-        } else if ("READING".equals(testType)) {
-            return "reading";
-        }
+        // Count responses by type and correctness
+        long audioResponses = responses.stream().filter(r -> r.getAudioBase64() != null).count();
+        long textCorrect = responses.stream().filter(r -> Boolean.TRUE.equals(r.getIsCorrect())).count();
+        long manualGradingRequired = responses.stream().filter(r -> r.getIsCorrect() == null).count();
 
-        if (question.getAudio() != null) {
-            return "listening";
-        } else if (question.getPassage() != null) {
-            return "reading";
-        }
+        System.out.println("Audio responses: " + audioResponses);
+        System.out.println("Text correct: " + textCorrect);
+        System.out.println("Manual grading required: " + manualGradingRequired);
 
-        if ("READING".equals(testType)) {
-            return "reading";
-        }
-
-        return "general";
-    }
-
-    // ✅ Calculate and set scores
-    private void calculateAndSetScores(TestAttempt attempt, Test test, Map<String, Integer> scoresByType, int totalCorrect) {
-        System.out.println("=== 🔍 ENHANCED SCORE CALCULATION DEBUG ===");
-        System.out.println("Input scoresByType: " + scoresByType);
-        System.out.println("Total correct: " + totalCorrect);
-
-        BigDecimal totalScore = BigDecimal.ZERO;
-        int componentsCount = 0;
-
-        for (Map.Entry<String, Integer> entry : scoresByType.entrySet()) {
-            String type = entry.getKey();
-            Integer correctCount = entry.getValue();
-
-            System.out.println("--- Processing " + type + " ---");
-            System.out.println("Correct count: " + correctCount);
-
-            // ✅ CRITICAL: Call mapping service to convert correctCount to IELTS score
-            BigDecimal ieltsScore = testScoreMappingService.getIELTSScore(type.toUpperCase(), correctCount);
-            System.out.println("🎯 IELTS Score from mapping: " + ieltsScore);
-
-            // ✅ VERIFICATION: Ensure we're using IELTS score, not correct count
-            if (ieltsScore.compareTo(BigDecimal.ZERO) > 0) {
-                totalScore = totalScore.add(ieltsScore);
-                componentsCount++;
-
-                switch (type.toLowerCase()) {
-                    case "listening":
-                        attempt.setListeningScore(ieltsScore);  // ✅ Use IELTS score
-                        System.out.println("✅ Set listening score: " + ieltsScore);
-                        break;
-                    case "reading":
-                        attempt.setReadingScore(ieltsScore);    // ✅ Use IELTS score
-                        System.out.println("✅ Set reading score: " + ieltsScore);
-                        break;
-                    case "writing":
-                        attempt.setWritingScore(ieltsScore);    // ✅ Use IELTS score
-                        System.out.println("✅ Set writing score: " + ieltsScore);
-                        break;
-                    case "speaking":
-                        attempt.setSpeakingScore(ieltsScore);   // ✅ Use IELTS score
-                        System.out.println("✅ Set speaking score: " + ieltsScore);
-                        break;
-                }
-            } else {
-                System.err.println("❌ IELTS score is 0 for " + type + " with " + correctCount + " correct answers!");
-            }
-        }
-
-        if (componentsCount > 0) {
-            BigDecimal averageScore = totalScore.divide(BigDecimal.valueOf(componentsCount), 1, BigDecimal.ROUND_HALF_UP);
-            attempt.setTotalScore(averageScore);  // ✅ Use IELTS average
-            System.out.println("✅ Final total IELTS score: " + averageScore);
-        } else {
-            // ✅ FALLBACK: If no components, use test type fallback
-            String testType = determineTestType(test);
-            BigDecimal fallbackScore = testScoreMappingService.getIELTSScore(testType, totalCorrect);
-
-            System.out.println("🔄 Using fallback for " + testType + " with " + totalCorrect + " correct");
-            System.out.println("🔄 Fallback IELTS score: " + fallbackScore);
-
-            if ("LISTENING".equals(testType)) {
-                attempt.setListeningScore(fallbackScore);
-            } else if ("READING".equals(testType)) {
-                attempt.setReadingScore(fallbackScore);
-            }
-
-            attempt.setTotalScore(fallbackScore);
-            System.out.println("✅ Fallback total IELTS score: " + fallbackScore);
-        }
-
-        // ✅ FINAL VERIFICATION
-        System.out.println("=== 🎯 FINAL SCORE VERIFICATION ===");
-        System.out.println("Total Score: " + attempt.getTotalScore());
-        System.out.println("Reading Score: " + attempt.getReadingScore());
-        System.out.println("Listening Score: " + attempt.getListeningScore());
-
-        // ✅ SANITY CHECK: Scores should be between 0.0 and 9.0
-        if (attempt.getTotalScore() != null && attempt.getTotalScore().compareTo(BigDecimal.valueOf(9.0)) > 0) {
-            System.err.println("🚨 CRITICAL ERROR: Total score > 9.0! This is incorrect for IELTS!");
-            System.err.println("🚨 Likely returning correct count instead of IELTS score!");
-
-            // ✅ EMERGENCY FIX: Force recalculate
-            String testType = determineTestType(test);
-            BigDecimal correctScore = testScoreMappingService.getIELTSScore(testType, totalCorrect);
-            attempt.setTotalScore(correctScore);
-
-            if ("READING".equals(testType)) {
-                attempt.setReadingScore(correctScore);
-            } else if ("LISTENING".equals(testType)) {
-                attempt.setListeningScore(correctScore);
-            }
-
-            System.out.println("🔧 EMERGENCY FIX: Set score to " + correctScore);
-        }
-    }
-
-    private String determineTestType(Test test) {
+        // Set scores based on test type
         if (test.getTestType() != null) {
-            return test.getTestType().toString().toUpperCase();
-        }
+            switch (test.getTestType()) {
+                case SPEAKING:
+                    // Speaking tests are manually graded
+                    attempt.setSpeakingScore(null);
+                    attempt.setTotalScore(null);
+                    System.out.println("✅ Speaking test - scores will be set after manual grading");
+                    break;
 
-        String testName = test.getTestName().toLowerCase();
-        if (testName.contains("listening")) {
-            return "LISTENING";
-        } else if (testName.contains("reading")) {
-            return "READING";
-        } else if (testName.contains("writing")) {
-            return "WRITING";
-        } else if (testName.contains("speaking")) {
-            return "SPEAKING";
-        }
+                case WRITING:
+                    // Writing tests are manually graded
+                    attempt.setWritingScore(null);
+                    attempt.setTotalScore(null);
+                    System.out.println("✅ Writing test - scores will be set after manual grading");
+                    break;
 
-        return "READING";
+                case LISTENING:
+                case READING:
+                    // Auto-grade objective questions
+                    if (manualGradingRequired == 0) {
+                        String testType = test.getTestType().toString();
+                        BigDecimal score = testScoreMappingService.getIELTSScore(testType, (int) textCorrect);
+
+                        if (test.getTestType() == TestType.LISTENING) {
+                            attempt.setListeningScore(score);
+                        } else {
+                            attempt.setReadingScore(score);
+                        }
+                        attempt.setTotalScore(score);
+
+                        System.out.println("✅ " + testType + " score: " + score);
+                    } else {
+                        attempt.setTotalScore(null); // Mixed test with manual grading
+                        System.out.println("✅ Mixed test - total score pending manual grading");
+                    }
+                    break;
+
+                default:
+                    attempt.setTotalScore(null);
+                    System.out.println("✅ Unknown test type - manual grading required");
+            }
+        }
+    }
+
+    private String formatFileSize(Long bytes) {
+        if (bytes == null || bytes == 0) return "0 B";
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
+        return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
     }
 }

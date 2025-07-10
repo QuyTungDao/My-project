@@ -1,4 +1,5 @@
 import axios from 'axios';
+import {canCreateExam, getUserFromToken} from "./utlis/authUtils";
 
 const API_URL = 'http://localhost:8080/api';
 
@@ -380,7 +381,7 @@ export const createTest = async (testData) => {
             headers: {
                 'Content-Type': 'application/json'
             },
-            timeout: 30000
+            timeout: 60000
         });
 
         console.log('✅ Test created successfully with context:', response.data);
@@ -646,7 +647,7 @@ export const updateTest = async (testId, testData) => {
             headers: {
                 'Content-Type': 'application/json'
             },
-            timeout: 30000 // 30 seconds for large audio data
+            timeout: 60000 // 30 seconds for large audio data
         });
 
         console.log('✅ Test updated successfully with context:', response.data);
@@ -1232,8 +1233,9 @@ export const uploadAudioFileWithProgress = async (file, onProgress) => {
             throw new Error('Chỉ hỗ trợ file audio: MP3, WAV, OGG, M4A');
         }
 
-        if (file.size > 50 * 1024 * 1024) {
-            throw new Error('File audio không được vượt quá 50MB');
+        // ✅ CHANGE: Increase size limit to 100MB
+        if (file.size > 100 * 1024 * 1024) {
+            throw new Error('File audio không được vượt quá 100MB');
         }
 
         const formData = new FormData();
@@ -1243,6 +1245,7 @@ export const uploadAudioFileWithProgress = async (file, onProgress) => {
             headers: {
                 'Content-Type': 'multipart/form-data'
             },
+            timeout: 120000, // ✅ CHANGE: Increase timeout to 2 minutes for 100MB files
             onUploadProgress: (progressEvent) => {
                 const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
                 console.log(`Upload progress: ${percentCompleted}%`);
@@ -1859,6 +1862,8 @@ export const validateAudioResponse = async (audioResponseData) => {
             audioDuration: audioResponseData.audioDuration,
             audioFileType: audioResponseData.audioFileType,
             audioFileSize: audioResponseData.audioFileSize
+        },{
+            timeout: 60000
         });
 
         console.log('✅ Audio validation result:', response.data);
@@ -1933,8 +1938,6 @@ export const convertAudioToBase64 = (audioBlob) => {
 export const validateAudioFile = (audioBlob, constraints = {}) => {
     const {
         maxSize = 50 * 1024 * 1024, // 50MB default
-        minDuration = 2, // 2 seconds minimum
-        maxDuration = 600, // 10 minutes maximum
         allowedTypes = ['audio/webm', 'audio/mp3', 'audio/wav', 'audio/ogg']
     } = constraints;
 
@@ -2268,7 +2271,7 @@ export const submitTest = async (testId, responses) => {
         };
 
         // ✅ ENHANCED: Use appropriate timeout based on content
-        const timeoutMs = hasAudioData ? 90000 : 30000; // 90s for audio, 30s for text-only
+        const timeoutMs = hasAudioData ? 180000 : 60000; // 90s for audio, 30s for text-only
 
         console.log(`Using ${timeoutMs/1000}s timeout (${hasAudioData ? 'audio' : 'text'} submission)`);
 
@@ -2403,15 +2406,18 @@ export const submitTest = async (testId, responses) => {
             console.error('Error data:', error.response.data);
 
             // ✅ ENHANCED: Audio-specific error handling
-            const errorMessage = error.response.data?.message || error.response.data || 'Unknown error';
+            const raw = error.response.data?.message ?? error.response.data;
+                        const errorMessage = typeof raw === 'string'
+                            ? raw
+                                : JSON.stringify(raw) || 'Unknown error';
 
             if (error.response.status === 413) {
                 throw new Error('Dữ liệu quá lớn (có thể do audio files). Vui lòng thử ghi âm ngắn hơn hoặc giảm chất lượng.');
             } else if (error.response.status === 408) {
                 throw new Error('Timeout khi upload. Vui lòng kiểm tra kết nối internet và thử lại.');
-            } else if (errorMessage.includes('audio')) {
+            } else if (errorMessage.toLowerCase().includes('audio')) {
                 throw new Error(`Lỗi xử lý audio: ${errorMessage}`);
-            } else if (errorMessage.includes('base64')) {
+            } else if (errorMessage.toLowerCase().includes('base64')) {
                 throw new Error('Lỗi định dạng audio. Vui lòng thử ghi lại.');
             }
         } else if (error.code === 'ECONNABORTED') {
@@ -2883,5 +2889,754 @@ export const getUserById = async (userId) => {
         console.error('❌ Error getting user by ID:', error);
         throw error;
     }
+};
+
+export const getMyTests = async () => {
+    try {
+        const response = await api.get('/test/my-tests');
+        return response.data;
+    } catch (error) {
+        console.error('Error getting my tests:', error);
+        throw error;
+    }
+};
+
+const getTestAttemptById = async (attemptId) => {
+    try {
+        const response = await api.get(`/test-attempts/${attemptId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error getting test attempt:', error);
+        throw error;
+    }
+};
+
+const updateManualScore = async (responseId, score, feedback) => {
+    try {
+        // This would need to be implemented in your backend
+        const response = await api.post(`/student-responses/${responseId}/grade`, {
+            manualScore: score,
+            feedback: feedback
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error updating manual score:', error);
+        throw error;
+    }
+};
+
+export const getTestSubmissions = async (testId) => {
+    try {
+        console.log('=== GETTING REAL TEST SUBMISSIONS ===');
+        console.log('Test ID:', testId);
+
+        const response = await api.get(`/grading/test/${testId}/submissions`);
+
+        console.log('✅ Real submissions received:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('❌ Error getting test submissions:', error);
+
+        // Enhanced error handling
+        if (error.response?.status === 403) {
+            throw new Error('Bạn không có quyền xem bài làm của bài thi này');
+        } else if (error.response?.status === 404) {
+            throw new Error('Không tìm thấy bài thi hoặc chưa có bài làm nào');
+        } else if (error.response?.status === 401) {
+            throw new Error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại');
+        }
+
+        throw error;
+    }
+};
+
+// Get attempt details for grading
+export const getAttemptForGrading = async (attemptId) => {
+    try {
+        console.log('=== GETTING REAL ATTEMPT FOR GRADING ===');
+        console.log('Attempt ID:', attemptId);
+
+        const response = await api.get(`/grading/attempt/${attemptId}/details`);
+
+        console.log('✅ Real attempt details received:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('❌ Error getting attempt for grading:', error);
+
+        if (error.response?.status === 403) {
+            throw new Error('Bạn không có quyền chấm bài này');
+        } else if (error.response?.status === 404) {
+            throw new Error('Không tìm thấy bài làm');
+        }
+
+        throw error;
+    }
+};
+
+// Grade a single response
+export const gradeResponse = async (responseId, score, feedback) => {
+    try {
+        console.log('=== GRADING RESPONSE (REAL) ===');
+        console.log('Response ID:', responseId);
+        console.log('Score:', score);
+        console.log('Feedback length:', feedback?.length || 0);
+
+        const response = await api.post(`/grading/response/${responseId}/grade`, {
+            responseId: responseId,
+            manualScore: score,
+            feedback: feedback
+        });
+
+        console.log('✅ Response graded successfully:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('❌ Error grading response:', error);
+
+        if (error.response?.status === 400) {
+            const errorMsg = error.response.data?.message || 'Dữ liệu không hợp lệ';
+            throw new Error(errorMsg);
+        } else if (error.response?.status === 403) {
+            throw new Error('Bạn không có quyền chấm bài này');
+        }
+
+        throw error;
+    }
+};
+// Get tests with pending grading
+export const getTestsWithPendingGrading = async () => {
+    try {
+        console.log('=== GETTING TESTS WITH PENDING GRADING ===');
+
+        const response = await api.get('/grading/pending');
+
+        console.log('✅ Tests with pending grading:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('❌ Error getting pending grading:', error);
+        throw error;
+    }
+};
+
+// Batch grade multiple responses
+export const batchGradeResponses = async (gradingRequests) => {
+    try {
+        console.log('=== BATCH GRADING ===');
+        console.log('Requests count:', gradingRequests.length);
+
+        const response = await api.post('/grading/batch-grade', gradingRequests);
+
+        console.log('✅ Batch grading completed:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('❌ Error in batch grading:', error);
+        throw error;
+    }
+};
+
+export const getGradingStatistics = async () => {
+    try {
+        console.log('=== GETTING GRADING STATISTICS ===');
+
+        const response = await api.get('/grading/statistics');
+
+        console.log('✅ Grading statistics received:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('❌ Error getting grading statistics:', error);
+        return {
+            totalTests: 0,
+            totalSubmissions: 0,
+            pendingGrading: 0,
+            completedGrading: 0
+        };
+    }
+};
+
+// =====================================
+// ENHANCED ERROR HANDLING FOR GRADING
+// =====================================
+
+/**
+ * Handle grading-specific errors
+ */
+export const handleGradingError = (error) => {
+    console.error('Grading error:', error);
+
+    if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.message || error.message;
+
+        switch (status) {
+            case 400:
+                return 'Dữ liệu không hợp lệ: ' + message;
+            case 401:
+                return 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
+            case 403:
+                return 'Bạn không có quyền thực hiện thao tác này.';
+            case 404:
+                return 'Không tìm thấy dữ liệu yêu cầu.';
+            case 500:
+                return 'Lỗi server. Vui lòng thử lại sau.';
+            default:
+                return 'Có lỗi xảy ra: ' + message;
+        }
+    } else if (error.request) {
+        return 'Không thể kết nối đến server. Kiểm tra kết nối mạng.';
+    } else {
+        return 'Lỗi: ' + error.message;
+    }
+};
+
+// =====================================
+// UTILITY FUNCTIONS FOR GRADING
+// =====================================
+
+/**
+ * Validate score input
+ */
+export const validateScore = (score) => {
+    const numScore = parseFloat(score);
+
+    if (isNaN(numScore)) {
+        return { isValid: false, error: 'Điểm số phải là số' };
+    }
+
+    if (numScore < 0 || numScore > 9) {
+        return { isValid: false, error: 'Điểm số phải từ 0 đến 9' };
+    }
+
+    // Check if it's a valid IELTS band score (0, 0.5, 1.0, 1.5, ..., 9.0)
+    const isValidBand = (numScore * 2) % 1 === 0;
+    if (!isValidBand) {
+        return { isValid: false, error: 'Điểm số phải là bội số của 0.5' };
+    }
+
+    return { isValid: true, score: numScore };
+};
+
+/**
+ * Format score for display
+ */
+export const formatScore = (score) => {
+    if (score === null || score === undefined) {
+        return 'Chưa chấm';
+    }
+
+    return parseFloat(score).toFixed(1);
+};
+
+/**
+ * Get score color class
+ */
+export const getScoreColorClass = (score) => {
+    if (score === null || score === undefined) {
+        return 'score-pending';
+    }
+
+    const numScore = parseFloat(score);
+
+    if (numScore >= 7.0) return 'score-excellent';
+    if (numScore >= 6.0) return 'score-good';
+    if (numScore >= 5.0) return 'score-pass';
+    return 'score-fail';
+};
+
+/**
+ * Determine if question requires manual grading
+ */
+export const requiresManualGrading = (questionType) => {
+    const manualGradingTypes = [
+        'ESSAY',
+        'WRITING_TASK1_ACADEMIC',
+        'WRITING_TASK1_GENERAL',
+        'WRITING_TASK2',
+        'SPEAKING_TASK',
+        'SPEAKING_PART1',
+        'SPEAKING_PART2',
+        'SPEAKING_PART3'
+    ];
+
+    return manualGradingTypes.includes(questionType);
+};
+
+/**
+ * Count words in text
+ */
+export const countWords = (text) => {
+    if (!text || typeof text !== 'string') {
+        return 0;
+    }
+
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+};
+
+/**
+ * Format date for display
+ */
+export const formatSubmissionDate = (dateString) => {
+    if (!dateString) return '';
+
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffHours < 1) {
+        return 'Vừa nộp';
+    } else if (diffHours < 24) {
+        return `${diffHours} giờ trước`;
+    } else if (diffDays < 7) {
+        return `${diffDays} ngày trước`;
+    } else {
+        return date.toLocaleDateString('vi-VN');
+    }
+};
+
+/**
+ * Calculate completion percentage
+ */
+export const calculateCompletionPercentage = (gradedCount, totalCount) => {
+    if (totalCount === 0) return 0;
+    return Math.round((gradedCount / totalCount) * 100);
+};
+
+// =====================================
+// CACHE MANAGEMENT FOR PERFORMANCE
+// =====================================
+
+let gradingCache = new Map();
+
+/**
+ * Cache grading data to reduce API calls
+ */
+export const cacheGradingData = (key, data, ttlMs = 300000) => { // 5 minutes TTL
+    const expiry = Date.now() + ttlMs;
+    gradingCache.set(key, { data, expiry });
+};
+
+/**
+ * Get cached grading data
+ */
+export const getCachedGradingData = (key) => {
+    const cached = gradingCache.get(key);
+
+    if (!cached) {
+        return null;
+    }
+
+    if (Date.now() > cached.expiry) {
+        gradingCache.delete(key);
+        return null;
+    }
+
+    return cached.data;
+};
+
+/**
+ * Clear grading cache
+ */
+export const clearGradingCache = () => {
+    gradingCache.clear();
+};
+
+// =====================================
+// ENHANCED getMyTests WITH GRADING INFO
+// =====================================
+
+/**
+ * Get teacher's tests with grading statistics
+ */
+export const getMyTestsWithGradingInfo = async () => {
+    try {
+        console.log('=== GETTING MY TESTS WITH GRADING INFO ===');
+
+        // Check cache first
+        const cacheKey = 'my-tests-with-grading';
+        const cached = getCachedGradingData(cacheKey);
+        if (cached) {
+            console.log('✅ Using cached tests data');
+            return cached;
+        }
+
+        const [testsResponse, pendingGradingResponse] = await Promise.all([
+            api.get('/test/my-tests'),
+            api.get('/grading/pending').catch(() => ({ data: [] })) // Don't fail if no pending grading
+        ]);
+
+        const tests = testsResponse.data;
+        const pendingGrading = pendingGradingResponse.data;
+
+        // Enhance tests with grading info
+        const testsWithGradingInfo = tests.map(test => {
+            const pendingInfo = pendingGrading.find(p => p.testId === test.id);
+            return {
+                ...test,
+                pendingSubmissions: pendingInfo?.pendingSubmissions || 0,
+                totalSubmissions: pendingInfo?.totalSubmissions || 0
+            };
+        });
+
+        // Cache the result
+        cacheGradingData(cacheKey, testsWithGradingInfo);
+
+        console.log('✅ Tests with grading info received:', testsWithGradingInfo);
+        return testsWithGradingInfo;
+    } catch (error) {
+        console.error('❌ Error getting tests with grading info:', error);
+        throw error;
+    }
+};
+
+export const testDatabaseData = async () => {
+    try {
+        console.log('=== TESTING DATABASE DATA ===');
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+            throw new Error("Need authentication to test database");
+        }
+
+        // Test basic endpoints
+        const tests = [
+            { name: 'All Tests', endpoint: '/test' },
+            { name: 'All Users', endpoint: '/users' },
+            { name: 'My Tests', endpoint: '/test/my-tests' }
+        ];
+
+        const results = {};
+
+        for (const test of tests) {
+            try {
+                console.log(`Testing ${test.name}: ${test.endpoint}`);
+                const response = await api.get(test.endpoint);
+                results[test.name] = {
+                    success: true,
+                    count: Array.isArray(response.data) ? response.data.length : 'Not array',
+                    sampleData: Array.isArray(response.data) && response.data.length > 0
+                        ? response.data[0]
+                        : response.data
+                };
+                console.log(`✅ ${test.name}: ${results[test.name].count} items`);
+            } catch (error) {
+                results[test.name] = {
+                    success: false,
+                    error: error.message,
+                    status: error.response?.status
+                };
+                console.log(`❌ ${test.name}: ${error.message}`);
+            }
+        }
+
+        console.log('=== DATABASE TEST RESULTS ===');
+        console.log(results);
+        return results;
+    } catch (error) {
+        console.error('❌ Database test failed:', error);
+        throw error;
+    }
+};
+
+/**
+ * Debug current user and permissions
+ */
+export const debugUserPermissions = async () => {
+    try {
+        console.log('=== DEBUGGING USER PERMISSIONS ===');
+
+        // Get user from token
+        const currentUser = getUserFromToken();
+        console.log('Current user from token:', currentUser);
+
+        if (!currentUser) {
+            return {
+                hasUser: false,
+                error: 'No user found in token'
+            };
+        }
+
+        // Try to get user profile from API
+        let apiUser = null;
+        try {
+            const profileResponse = await api.get('/users/profile');
+            apiUser = profileResponse.data;
+            console.log('User from API:', apiUser);
+        } catch (error) {
+            console.log('Could not get user from API:', error.message);
+        }
+
+        // Check if user can create tests
+        const canCreate = canCreateExam();
+        console.log('Can create exam:', canCreate);
+
+        return {
+            hasUser: true,
+            tokenUser: currentUser,
+            apiUser: apiUser,
+            canCreateExam: canCreate,
+            role: currentUser.role,
+            userId: currentUser.id || currentUser.user_id
+        };
+    } catch (error) {
+        console.error('❌ User permission debug failed:', error);
+        throw error;
+    }
+};
+
+export const getMyTestsWithGradingInfoEnhanced = async () => {
+    try {
+        console.log('🔄 Calling enhanced getMyTests with grading info...');
+
+        // Try the enhanced endpoint first
+        const response = await fetch(`${API_URL}/my-tests-enhanced`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAuthToken()}`
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Enhanced API failed: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ Enhanced API success:', data);
+        return data;
+
+    } catch (error) {
+        console.error('❌ Enhanced API error:', error);
+        throw error;
+    }
+};
+
+/**
+ * ✅ Quick fix function - Fallback to basic endpoint
+ */
+export const getMyTestsQuickFix = async () => {
+    try {
+        console.log('🔧 Trying quick fix - basic my-tests endpoint...');
+
+        // Use the basic endpoint
+        const response = await fetch(`${API_URL}/my-tests`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAuthToken()}`
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Quick fix API failed: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ Quick fix API success:', data);
+
+        // ✅ Transform basic data to include grading info placeholders
+        const testsWithGradingInfo = data.map(test => ({
+            ...test,
+            totalSubmissions: 0,      // Placeholder
+            pendingSubmissions: 0,    // Placeholder
+            completedSubmissions: 0,  // Placeholder
+            gradingStatus: 'unknown'  // Placeholder
+        }));
+
+        return testsWithGradingInfo;
+
+    } catch (error) {
+        console.error('❌ Quick fix API error:', error);
+        throw error;
+    }
+};
+
+/**
+ * ✅ Alternative - Get basic tests (existing function reference)
+ */
+export const getMyTestsBasic = async () => {
+    try {
+        console.log('📝 Getting basic tests without grading info...');
+
+        const response = await fetch(`${API_URL}/my-tests`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAuthToken()}`
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Basic API failed: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ Basic API success:', data);
+        return data;
+
+    } catch (error) {
+        console.error('❌ Basic API error:', error);
+        throw error;
+    }
+};
+
+// =====================================
+// 🔧 UTILITY FUNCTIONS
+// =====================================
+
+/**
+ * Get auth token safely
+ */
+const getAuthToken = () => {
+    return localStorage.getItem('token') || sessionStorage.getItem('token') || '';
+};
+
+/**
+ * Safe API caller with retries
+ */
+export const getMyTestsSafely = async () => {
+    const strategies = [
+        { name: 'Enhanced', fn: getMyTestsWithGradingInfoEnhanced },
+        { name: 'Quick Fix', fn: getMyTestsQuickFix },
+        { name: 'Basic', fn: getMyTestsBasic }
+    ];
+
+    for (const strategy of strategies) {
+        try {
+            console.log(`🔄 Trying ${strategy.name} strategy...`);
+            const result = await strategy.fn();
+            console.log(`✅ ${strategy.name} strategy succeeded`);
+            return result;
+        } catch (error) {
+            console.warn(`⚠️ ${strategy.name} strategy failed:`, error.message);
+            // Continue to next strategy
+        }
+    }
+
+    // If all strategies fail
+    throw new Error('All API strategies failed');
+};
+
+export const saveCriteriaGrading = async (criteriaGradingData) => {
+    try {
+        console.log('=== SAVING CRITERIA GRADING ===');
+        console.log('Criteria data:', criteriaGradingData);
+
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) {
+            throw new Error("Bạn cần đăng nhập để chấm điểm.");
+        }
+
+        const response = await api.post('/grading/criteria-grade', criteriaGradingData, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            timeout: 30000 // 30 seconds
+        });
+
+        console.log('✅ Criteria grading saved successfully:', response.data);
+        return response.data;
+
+    } catch (error) {
+        console.error('❌ Error saving criteria grading:', error);
+
+        // Enhanced error handling for criteria grading
+        if (error.response) {
+            console.error('Status:', error.response.status);
+            console.error('Data:', error.response.data);
+
+            if (error.response.status === 400) {
+                throw new Error(`Dữ liệu không hợp lệ: ${error.response.data.message || error.response.data}`);
+            } else if (error.response.status === 403) {
+                throw new Error('Bạn không có quyền chấm bài này');
+            } else if (error.response.status === 404) {
+                throw new Error('Không tìm thấy bài làm');
+            }
+        }
+
+        throw error;
+    }
+};
+
+export const deleteUser = (id) => axios.delete(`${API_URL}/users/${id}`);
+
+export const getAudioLimits = async () => {
+    try {
+        console.log('=== GETTING AUDIO LIMITS ===');
+
+        const response = await api.get('/test/upload-limits');
+
+        console.log('✅ Audio limits received:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('❌ Error getting audio limits:', error);
+
+        // ✅ FALLBACK: Return 100MB default
+        const fallbackLimits = {
+            maxFileSize: 100 * 1024 * 1024,
+            maxFileSizeFormatted: "100MB",
+            supportedFormats: ["audio/mp3", "audio/wav", "audio/ogg", "audio/m4a", "audio/mpeg"],
+            maxDurationMinutes: 30,
+            description: "IELTS Audio Upload Limits"
+        };
+
+        console.log('Using fallback limits:', fallbackLimits);
+        return fallbackLimits;
+    }
+};
+
+/**
+ * Validate audio file size and format
+ */
+export const validateAudioSize = (audioBlob, constraints = {}) => {
+    console.log('=== VALIDATING AUDIO SIZE ===');
+    console.log('Audio blob size:', audioBlob?.size);
+    console.log('Audio blob type:', audioBlob?.type);
+
+    const {
+        maxSize = 100 * 1024 * 1024, // ✅ CHANGE: Default to 100MB
+        minDuration = 2,
+        maxDuration = 600,
+        allowedTypes = ['audio/webm', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/mpeg']
+    } = constraints;
+
+    const errors = [];
+    const warnings = [];
+
+    // Check file size
+    if (audioBlob.size > maxSize) {
+        errors.push(`Audio file quá lớn (${formatFileSize(audioBlob.size)}). Tối đa: ${formatFileSize(maxSize)}`);
+    }
+
+    if (audioBlob.size < 1000) { // Less than 1KB
+        errors.push('Audio file quá nhỏ. Có thể bị lỗi trong quá trình recording.');
+    }
+
+    // Check MIME type
+    if (!allowedTypes.includes(audioBlob.type)) {
+        warnings.push(`Audio type "${audioBlob.type}" có thể không được hỗ trợ. Được khuyến nghị: ${allowedTypes.join(', ')}`);
+    }
+
+    // Estimate processing time for large files
+    const estimatedProcessingTime = Math.ceil(audioBlob.size / (10 * 1024 * 1024)); // ~1 second per 10MB
+    if (audioBlob.size > 50 * 1024 * 1024) {
+        warnings.push(`File lớn có thể mất ${estimatedProcessingTime} giây để xử lý.`);
+    }
+
+    const result = {
+        isValid: errors.length === 0,
+        errors,
+        warnings,
+        fileSize: audioBlob.size,
+        mimeType: audioBlob.type,
+        formattedSize: formatFileSize(audioBlob.size),
+        estimatedProcessingTime
+    };
+
+    console.log('Validation result:', result);
+    return result;
 };
 export default api;

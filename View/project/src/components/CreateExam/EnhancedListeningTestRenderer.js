@@ -1,9 +1,10 @@
 // =====================================
-// FIXED EnhancedListeningTestRenderer.js - Show Both Context AND Questions
+// ENHANCED EnhancedListeningTestRenderer.js - JSON Table Support
 // =====================================
 
 import React, { useState, useEffect } from 'react';
 import ListeningAudioPlayer from './ListeningAudioPlayer';
+import TableCompletionRenderer from './TableCompletionRenderer'; // ✅ Import new component
 import './EnhancedListeningTestRenderer.css';
 
 const EnhancedListeningTestRenderer = ({
@@ -35,9 +36,41 @@ const EnhancedListeningTestRenderer = ({
         setExpandedSets(newExpanded);
     };
 
-    // ✅ ENHANCED: Visual Table Renderer for Table Completion
-    const renderVisualTable = (set) => {
+    // ✅ ENHANCED: JSON Table Renderer for Table Completion
+    const renderJsonTable = (set) => {
         if (!set.context || !set.requiresContext || set.subType !== 'TABLE_COMPLETION') {
+            return null;
+        }
+
+        // Check if context is JSON structure
+        try {
+            const parsed = JSON.parse(set.context);
+            if (parsed.type === 'ielts_table_completion') {
+                console.log('✅ Rendering JSON table structure for students');
+
+                return (
+                    <TableCompletionRenderer
+                        contextData={set.context}
+                        questions={set.questions}
+                        userAnswers={userAnswers}
+                        onAnswerChange={onAnswerChange}
+                        isSubmitted={isSubmitted}
+                        showResults={false}
+                    />
+                );
+            }
+        } catch (e) {
+            // Not JSON, fall back to visual table parsing
+            console.log('Context is not JSON, using visual table fallback');
+        }
+
+        // Fallback to original visual table renderer
+        return renderVisualTable(set);
+    };
+
+    // ✅ ORIGINAL: Visual Table Renderer (fallback for markdown)
+    const renderVisualTable = (set) => {
+        if (!set.context || !set.requiresContext) {
             return null;
         }
 
@@ -46,7 +79,7 @@ const EnhancedListeningTestRenderer = ({
         const tableLines = lines.filter(line => line.includes('|') && !line.includes('---'));
 
         if (tableLines.length === 0) {
-            return renderContextDisplay(set); // Fallback to old method
+            return renderContextDisplay(set); // Fallback to text display
         }
 
         const tableData = tableLines.map(line =>
@@ -334,99 +367,87 @@ const EnhancedListeningTestRenderer = ({
                     <div className="question-set-header" onClick={() => toggleSetExpansion(set.id)}>
                         <div className="set-info">
                             <div className="set-title">
-                                <span className="set-type-badge">{set.subType || set.type}</span>
-                                <h3>{set.name}</h3>
+                                <h3>
+                                    {set.title || `Questions ${set.questions[0]?.questionNumber}-${set.questions[set.questions.length - 1]?.questionNumber}`}
+                                </h3>
+                                <div className="set-metadata">
+                                    <span className="question-count">
+                                        {set.questions.length} question{set.questions.length !== 1 ? 's' : ''}
+                                    </span>
+                                    <span className="set-type">{set.subType || set.type}</span>
+                                </div>
                             </div>
-                            <div className="set-meta">
-                                <span className="question-count">
-                                    Questions {set.questions[0]?.questionNumber || 1} - {set.questions[set.questions.length - 1]?.questionNumber || set.questions.length}
-                                </span>
-                                <span className="audio-info">
-                                    🎧 {getAudioTitle(set.audioId)}
-                                </span>
-                                <span className="progress-info">
-                                    {getAnsweredQuestionsInSet(set)}/{set.questions.length} answered
-                                </span>
+
+                            <div className="set-status">
+                                <div className="progress-info">
+                                    <span className="answered-count">
+                                        {getAnsweredQuestionsInSet(set)}/{set.questions.length} answered
+                                    </span>
+                                    <div className="progress-bar">
+                                        <div
+                                            className="progress-fill"
+                                            style={{
+                                                width: `${(getAnsweredQuestionsInSet(set) / set.questions.length) * 100}%`
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="expand-icon">
+                                    {expandedSets.has(set.id) ? '▼' : '▶'}
+                                </div>
                             </div>
-                        </div>
-                        <div className="expand-toggle">
-                            <span className="expand-icon">
-                                {expandedSets.has(set.id) ? '▼' : '▶'}
-                            </span>
                         </div>
                     </div>
+
+                    {/* Audio Player for this set */}
+                    {set.audioId && audioList && (
+                        <div className="set-audio-player">
+                            <div className="audio-info">
+                                <span className="audio-title">🎧 {getAudioTitle(set.audioId)}</span>
+                            </div>
+                            <ListeningAudioPlayer
+                                audioList={audioList}
+                                currentAudioIndex={audioList.findIndex(a => a.id === set.audioId)}
+                                setCurrentAudioIndex={setCurrentAudioIndex}
+                                isSubmitted={isSubmitted}
+                            />
+                        </div>
+                    )}
 
                     {/* Question Set Content */}
                     {expandedSets.has(set.id) && (
                         <div className="question-set-content">
-                            {/* ✅ ENHANCED: Instructions always displayed prominently */}
+                            {/* Instructions */}
                             {set.instructions && (
                                 <div className="set-instructions">
-                                    <div className="instructions-icon">📋</div>
-                                    <div className="instructions-text">
-                                        <strong>Instructions:</strong>
-                                        <div className="instructions-content">
-                                            {set.instructions.split('\n').map((line, idx) => (
-                                                <p key={idx}>{line}</p>
-                                            ))}
-                                        </div>
+                                    <div className="instructions-content">
+                                        <p>{set.instructions}</p>
                                     </div>
                                 </div>
                             )}
 
-                            {/* ✅ ENHANCED: Word Limit Info for completion types */}
-                            {set.requiresContext && (
-                                <div className="word-limit-notice">
-                                    <span className="word-limit-badge">
-                                        💡 {set.questions[0]?.wordLimit || 'NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer'}
-                                    </span>
-                                </div>
-                            )}
-
-                            {/* ✅ ENHANCED: Context Display (Table/Notes/Forms) */}
-                            {set.context && set.requiresContext && (
+                            {/* Context-based Display (Tables, Forms, Notes) */}
+                            {set.requiresContext && set.context && (
                                 <div className="context-section">
-                                    {set.subType === 'TABLE_COMPLETION' ?
-                                        renderVisualTable(set) :
+                                    {/* ✅ ENHANCED: Try JSON table first, fallback to visual table */}
+                                    {set.subType === 'TABLE_COMPLETION' ? (
+                                        renderJsonTable(set)
+                                    ) : (
                                         renderContextDisplay(set)
-                                    }
+                                    )}
                                 </div>
                             )}
 
-                            {/* ✅ ENHANCED: Standalone Questions for ALL types */}
-                            {set.questions.length > 0 && (
+                            {/* Standalone Questions */}
+                            {/* ✅ ENHANCED: Show for MCQ/Matching/Short Answer OR when questions have individual text */}
+                            {(!set.requiresContext ||
+                                set.type === 'MCQ' ||
+                                set.type === 'MATCHING' ||
+                                set.type === 'SHORT_ANSWER' ||
+                                set.questions.some(q => q.questionText)) && (
                                 <div className="questions-section">
-                                    {/* Only show standalone questions for non-context types OR context types with individual question text */}
-                                    {(!set.requiresContext ||
-                                            set.questions.some(q => q.questionText && q.questionText.trim())) &&
-                                        renderStandaloneQuestions(set)
-                                    }
-                                </div>
-                            )}
-
-                            {/* ✅ ENHANCED: Question Numbers Reference for completion types */}
-                            {set.requiresContext && (
-                                <div className="question-numbers-reference">
-                                    <h4>Questions in this section:</h4>
-                                    <div className="question-numbers-grid">
-                                        {set.questions.map(question => (
-                                            <div key={question.id} className="question-number-item">
-                                                <span className="number">{question.questionNumber}</span>
-                                                <span className={`status ${userAnswers[question.id] ? 'answered' : 'unanswered'}`}>
-                                                    {userAnswers[question.id] ? '✓' : '○'}
-                                                </span>
-                                                {/* ✅ Show answer preview */}
-                                                {userAnswers[question.id] && (
-                                                    <span className="answer-preview">
-                                                        {userAnswers[question.id].length > 15
-                                                            ? userAnswers[question.id].substring(0, 15) + '...'
-                                                            : userAnswers[question.id]
-                                                        }
-                                                    </span>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
+                                    {renderStandaloneQuestions(set)}
                                 </div>
                             )}
                         </div>
@@ -434,43 +455,40 @@ const EnhancedListeningTestRenderer = ({
                 </div>
             ))}
 
-            {/* ✅ ENHANCED: Summary with detailed progress */}
+            {/* Test Summary */}
             <div className="test-summary">
                 <div className="summary-stats">
                     <div className="stat-item">
-                        <span className="stat-number">{questionSets.reduce((acc, set) => acc + getAnsweredQuestionsInSet(set), 0)}</span>
+                        <span className="stat-value">
+                            {questionSets.reduce((total, set) => total + set.questions.length, 0)}
+                        </span>
+                        <span className="stat-label">Total Questions</span>
+                    </div>
+                    <div className="stat-item">
+                        <span className="stat-value">
+                            {questionSets.reduce((total, set) => total + getAnsweredQuestionsInSet(set), 0)}
+                        </span>
                         <span className="stat-label">Answered</span>
                     </div>
                     <div className="stat-item">
-                        <span className="stat-number">{questionSets.reduce((acc, set) => acc + set.questions.length, 0)}</span>
-                        <span className="stat-label">Total</span>
-                    </div>
-                    <div className="stat-item">
-                        <span className="stat-number">{questionSets.length}</span>
-                        <span className="stat-label">Sections</span>
+                        <span className="stat-value">
+                            {questionSets.length}
+                        </span>
+                        <span className="stat-label">Question Sets</span>
                     </div>
                 </div>
 
-                {/* ✅ Progress by question type */}
-                <div className="progress-by-type">
-                    {questionSets.map(set => {
-                        const answered = getAnsweredQuestionsInSet(set);
-                        const total = set.questions.length;
-                        const percentage = total > 0 ? Math.round((answered / total) * 100) : 0;
-
-                        return (
-                            <div key={set.id} className="type-progress">
-                                <span className="type-name">{set.name}</span>
-                                <div className="progress-bar">
-                                    <div
-                                        className="progress-fill"
-                                        style={{ width: `${percentage}%` }}
-                                    ></div>
-                                </div>
-                                <span className="progress-text">{answered}/{total}</span>
-                            </div>
-                        );
-                    })}
+                <div className="overall-progress">
+                    <div className="progress-label">Overall Progress</div>
+                    <div className="progress-bar large">
+                        <div
+                            className="progress-fill"
+                            style={{
+                                width: `${(questionSets.reduce((total, set) => total + getAnsweredQuestionsInSet(set), 0) /
+                                    questionSets.reduce((total, set) => total + set.questions.length, 0)) * 100}%`
+                            }}
+                        />
+                    </div>
                 </div>
             </div>
         </div>

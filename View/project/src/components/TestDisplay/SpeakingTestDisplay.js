@@ -22,11 +22,13 @@ const SpeakingTestDisplay = ({
     const [mediaRecorder, setMediaRecorder] = useState(null);
     const [audioChunks, setAudioChunks] = useState([]);
     const [microphoneAccess, setMicrophoneAccess] = useState(false);
-    const [currentPhase, setCurrentPhase] = useState('intro'); // intro, preparation, speaking, completed
+    const [currentPhase, setCurrentPhase] = useState('intro');
+    const [preparationNotes, setPreparationNotes] = useState('');// intro, preparation, speaking, completed
 
     const recordingTimerRef = useRef(null);
     const preparationTimerRef = useRef(null);
     const audioRef = useRef(null);
+    const currentRecordingTimeRef = useRef(0); // Add ref to track current recording time
 
     // Group questions by speaking part
     const groupedParts = questions.reduce((groups, question) => {
@@ -153,6 +155,15 @@ const SpeakingTestDisplay = ({
         }
     };
 
+    // ✅ THÊM: Function để skip preparation time
+    const skipPreparation = () => {
+        if (preparationTimerRef.current) {
+            clearInterval(preparationTimerRef.current);
+        }
+        setPreparationTime(0);
+        setCurrentPhase('speaking');
+    };
+
     // Start recording
     const startRecording = async () => {
         if (!microphoneAccess) {
@@ -188,7 +199,7 @@ const SpeakingTestDisplay = ({
                 const recordingData = {
                     blob: audioBlob,
                     url: audioUrl,
-                    duration: recordingTime,
+                    duration: currentRecordingTimeRef.current, // Use ref value instead of state
                     timestamp: new Date().toISOString()
                 };
 
@@ -214,10 +225,15 @@ const SpeakingTestDisplay = ({
             recorder.start();
             setIsRecording(true);
             setRecordingTime(0);
+            currentRecordingTimeRef.current = 0; // Reset ref
 
             // Start recording timer
             recordingTimerRef.current = setInterval(() => {
-                setRecordingTime(prev => prev + 1);
+                setRecordingTime(prev => {
+                    const newTime = prev + 1;
+                    currentRecordingTimeRef.current = newTime; // Update ref with current time
+                    return newTime;
+                });
             }, 1000);
 
         } catch (error) {
@@ -229,12 +245,14 @@ const SpeakingTestDisplay = ({
     // Stop recording
     const stopRecording = () => {
         if (mediaRecorder && mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
-            setIsRecording(false);
-
+            // Stop timer first and save current time
             if (recordingTimerRef.current) {
                 clearInterval(recordingTimerRef.current);
             }
+
+            // Stop recording
+            mediaRecorder.stop();
+            setIsRecording(false);
         }
     };
 
@@ -261,7 +279,9 @@ const SpeakingTestDisplay = ({
 
         // Reset timers
         setRecordingTime(0);
+        currentRecordingTimeRef.current = 0;
         setPreparationTime(0);
+        setPreparationNotes(''); // Reset notes
     };
 
     // Navigate to previous question
@@ -276,6 +296,7 @@ const SpeakingTestDisplay = ({
 
         setCurrentPhase('speaking');
         setRecordingTime(0);
+        currentRecordingTimeRef.current = 0;
     };
 
     // Play recorded audio
@@ -496,11 +517,27 @@ const SpeakingTestDisplay = ({
                                                 {formatTime(preparationTime)}
                                             </div>
                                             <p>Use this time to think about your answer and make notes if needed.</p>
+                                            <p className="skip-hint">💡 You can start speaking anytime when ready!</p>
+
                                             <div className="preparation-notes">
-                                                <textarea
-                                                    placeholder="Make notes here (optional)..."
-                                                    rows={4}
-                                                />
+                <textarea
+                    placeholder="Make notes here (optional)..."
+                    value={preparationNotes}
+                    onChange={(e) => setPreparationNotes(e.target.value)}
+                    rows={4}
+                />
+                                            </div>
+
+                                            {/* ✅ THÊM: Skip button */}
+                                            <div className="preparation-actions">
+                                                <button
+                                                    className="skip-prep-btn"
+                                                    onClick={skipPreparation}
+                                                    disabled={preparationTime <= 0}
+                                                >
+                                                    🚀 Ready to Speak - Start Now
+                                                </button>
+                                                <span className="or-wait">or wait {formatTime(preparationTime)} for auto-start</span>
                                             </div>
                                         </div>
                                     </div>

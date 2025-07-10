@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { login, checkPassword } from "../../api";
+import './Login.css';
 
 export default function Login() {
     const [input, setInput] = useState({ email: '', password: '' });
@@ -79,6 +80,7 @@ export default function Login() {
         alert('Đã xóa token. Vui lòng đăng nhập lại.');
         setInput({ email: '', password: '' });
         setToken('');
+        setDebugMessage('');
     };
 
     // Hàm kiểm tra mật khẩu (chỉ dùng cho debug)
@@ -91,87 +93,112 @@ export default function Login() {
         try {
             setDebugMessage('Đang kiểm tra mật khẩu...');
             const result = await checkPassword(input);
-            setDebugMessage('Kết quả kiểm tra: ' + result);
+            setDebugMessage('Kết quả kiểm tra: ' + JSON.stringify(result));
         } catch (err) {
             setDebugMessage('Lỗi kiểm tra mật khẩu: ' + (err.message || err));
         }
     };
 
     return (
-        <div className="flex items-center justify-center h-screen bg-gray-100">
-            <div className="bg-white p-6 rounded shadow-md w-96">
-                <h2 className="text-2xl font-bold mb-4">Đăng nhập</h2>
-                <form onSubmit={handleSubmit}>
-                    <input
-                        type="email"
-                        placeholder="Email"
-                        value={input.email}
-                        onChange={(e) => setInput({ ...input, email: e.target.value })}
-                        className="w-full p-2 mb-4 border rounded"
-                    />
-                    <input
-                        type="password"
-                        placeholder="Mật khẩu"
-                        value={input.password}
-                        onChange={(e) => setInput({ ...input, password: e.target.value })}
-                        className="w-full p-2 mb-4 border rounded"
-                    />
-                    {error && <p className="text-red-500 mb-4">{error}</p>}
+        <div className="login-container">
+            <div className="login-card">
+                <h2 className="login-title">Đăng nhập</h2>
+
+                <form onSubmit={handleSubmit} className="login-form">
+                    <div className="login-input-group">
+                        <input
+                            type="email"
+                            placeholder="Địa chỉ email"
+                            value={input.email}
+                            onChange={(e) => setInput({ ...input, email: e.target.value })}
+                            className="login-input"
+                            required
+                        />
+                    </div>
+
+                    <div className="login-input-group">
+                        <input
+                            type="password"
+                            placeholder="Mật khẩu"
+                            value={input.password}
+                            onChange={(e) => setInput({ ...input, password: e.target.value })}
+                            className="login-input"
+                            required
+                        />
+                    </div>
+
+                    {error && (
+                        <div className="login-error">
+                            {error}
+                        </div>
+                    )}
+
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
+                        className="login-button"
                     >
-                        {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                        {loading ? (
+                            <span className="login-loading-text">
+                                <span className="login-loading-spinner"></span>
+                                Đang đăng nhập...
+                            </span>
+                        ) : (
+                            'Đăng nhập'
+                        )}
                     </button>
                 </form>
 
-                {/* ✅ SỬA: Sử dụng Link thay vì href */}
-                <p className="mt-4 text-center">
-                    Chưa có tài khoản? <Link to="/register" className="text-blue-500 hover:underline">Đăng ký</Link>
+                <p className="login-register-link">
+                    Chưa có tài khoản? <Link to="/register" className="login-link">Đăng ký ngay</Link>
                 </p>
 
-                {/* Thêm nút xóa token và debug */}
-                <div className="mt-6 pt-4 border-t">
+                {/* Debug Section */}
+                <div className="login-debug-section">
                     <button
                         onClick={handleClearTokens}
-                        className="w-full bg-red-500 text-white p-2 rounded hover:bg-red-600 mb-2"
+                        className="login-debug-button login-clear-button"
+                        type="button"
                     >
-                        Xóa token và đăng nhập lại
+                        🗑️ Xóa token và đăng nhập lại
                     </button>
 
                     <button
                         onClick={() => setShowToken(!showToken)}
-                        className="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600 mb-2"
+                        className="login-debug-button login-toggle-button"
+                        type="button"
                     >
-                        {showToken ? 'Ẩn thông tin token' : 'Hiển thị thông tin token'}
+                        {showToken ? '🙈 Ẩn thông tin token' : '👁️ Hiển thị thông tin token'}
                     </button>
 
                     <button
                         onClick={handleCheckPassword}
-                        className="w-full bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600"
+                        className="login-debug-button login-check-button"
+                        type="button"
                     >
-                        Kiểm tra mật khẩu (Debug)
+                        🔍 Kiểm tra mật khẩu (Debug)
                     </button>
 
                     {showToken && token && (
-                        <div className="mt-4 p-2 bg-gray-100 rounded">
-                            <p className="font-semibold">Token:</p>
-                            <p className="text-xs break-all">{token}</p>
+                        <div className="login-token-display">
+                            <div className="login-token-label">Current Token:</div>
+                            <div className="login-token-value">{token}</div>
                         </div>
                     )}
 
                     {showToken && (
-                        <div className="mt-4 p-2 bg-gray-100 rounded">
-                            <p className="font-semibold">Token từ localStorage:</p>
-                            <p className="text-xs break-all">{localStorage.getItem('token') || "Không có token"}</p>
+                        <div className="login-token-display">
+                            <div className="login-token-label">Token từ localStorage:</div>
+                            <div className="login-token-value">
+                                {localStorage.getItem('token') || "Không có token"}
+                            </div>
                         </div>
                     )}
 
                     {debugMessage && (
-                        <div className="mt-4 p-2 bg-gray-100 rounded">
-                            <p className="font-semibold">Thông tin debug:</p>
-                            <p className="text-xs break-all">{debugMessage}</p>
+                        <div className="login-debug-message">
+                            <div className="login-debug-label">Thông tin debug:</div>
+                            <div className="login-debug-text">{debugMessage}</div>
                         </div>
                     )}
                 </div>
