@@ -4,7 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import tungdao.com.project1.dto.TestDTO;
 import tungdao.com.project1.entity.*;
+import tungdao.com.project1.mapper.TestMapper;
 import tungdao.com.project1.repository.*;
 import tungdao.com.project1.service.UserService;
 
@@ -13,6 +15,9 @@ import java.util.List;
 @RestController
 @RequestMapping("/api")
 public class MyController {
+    @Autowired
+    private TestMapper testMapper;
+
     @GetMapping("/data")
     public String getData() {
         return "Xin chào từ Spring Boot!";
@@ -31,9 +36,6 @@ public class MyController {
 
     @Autowired
     private FlashcardRepository flashcardRepository;
-
-    @Autowired
-    private PerformanceReportRepository performanceReportRepository;
 
     @Autowired
     private QuestionRepository questionRepository;
@@ -82,8 +84,10 @@ public class MyController {
 
     // Tests
     @GetMapping("/tests")
-    public List<Test> getAllTests() {
-        return testRepository.findAll();
+    public ResponseEntity<List<TestDTO>> getAllTests() {
+        List<Test> tests = testRepository.findAll();
+        List<TestDTO> testDTOs = testMapper.toDTOList(tests);
+        return ResponseEntity.ok(testDTOs);
     }
 
     @PostMapping("/tests")
@@ -100,17 +104,6 @@ public class MyController {
     @PostMapping("/flashcards")
     public FlashCard createFlashCard(@RequestBody FlashCard flashcard) {
         return flashcardRepository.save(flashcard);
-    }
-
-    // Performance Reports
-    @GetMapping("/performance-reports")
-    public List<PerformanceReport> getAllPerformanceReports() {
-        return performanceReportRepository.findAll();
-    }
-
-    @PostMapping("/performance-reports")
-    public PerformanceReport createPerformanceReport(@RequestBody PerformanceReport report) {
-        return performanceReportRepository.save(report);
     }
 
     // Questions

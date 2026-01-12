@@ -8,43 +8,6 @@ const SpeakingWritingResultPage = ({ result, onViewDetailedResult }) => {
             result?.testType?.toUpperCase().includes('SPEAKING');
     };
 
-    // ✅ UPDATED: Check if test has been graded by teacher
-    const isGradedByTeacher = () => {
-        console.log('=== CHECKING GRADED STATUS ===');
-        console.log('gradingStatus:', result?.gradingStatus);
-        console.log('overallScore:', result?.overallScore);
-        console.log('finalScore:', result?.finalScore);
-        console.log('graderId:', result?.graderId);
-        console.log('gradedAt:', result?.gradedAt);
-
-        // ✅ Primary check: grading status is completed
-        if (result?.gradingStatus === 'COMPLETED') {
-            console.log('✅ Graded: Status is COMPLETED');
-            return true;
-        }
-
-        // ✅ Fallback check: has overall score and grader info
-        if (result?.overallScore !== null &&
-            result?.overallScore !== undefined &&
-            result?.graderId !== null &&
-            result?.gradedAt !== null) {
-            console.log('✅ Graded: Has overall score + grader info');
-            return true;
-        }
-
-        // ✅ Alternative fallback: check finalScore (computed field)
-        if (result?.finalScore !== null &&
-            result?.finalScore !== undefined &&
-            result?.finalScore > 0 &&
-            result?.graderId !== null) {
-            console.log('✅ Graded: Has final score + grader');
-            return true;
-        }
-
-        console.log('❌ Not graded yet');
-        return false;
-    };
-
     // Get grading status
     const getGradingStatus = () => {
         if (isGradedByTeacher()) {
@@ -64,7 +27,70 @@ const SpeakingWritingResultPage = ({ result, onViewDetailedResult }) => {
         }
     };
 
+    // ✅ FIXED: Check if test has been graded by teacher
+    const isGradedByTeacher = () => {
+        console.log('=== CHECKING GRADED STATUS ===');
+        console.log('gradingStatus:', result?.gradingStatus);
+        console.log('overallScore:', result?.overallScore);
+        console.log('finalScore:', result?.finalScore);
+        console.log('totalScore:', result?.totalScore);
+        console.log('graderId:', result?.graderId);
+        console.log('gradedAt:', result?.gradedAt);
+
+        // ✅ Method 1: Check grading status is completed
+        if (result?.gradingStatus === 'COMPLETED') {
+            console.log('✅ Graded: Status is COMPLETED');
+            return true;
+        }
+
+        // ✅ Method 2: Check overall score exists and is valid IELTS score
+        if (result?.overallScore !== null &&
+            result?.overallScore !== undefined &&
+            result?.overallScore > 0) {
+            console.log('✅ Graded: Has valid overall score');
+            return true;
+        }
+
+        // ✅ Method 3: Check finalScore
+        if (result?.finalScore !== null &&
+            result?.finalScore !== undefined &&
+            result?.finalScore > 0) {
+            console.log('✅ Graded: Has valid final score');
+            return true;
+        }
+
+        // ✅ Method 4: Check totalScore in IELTS range (0-9)
+        if (result?.totalScore !== null &&
+            result?.totalScore !== undefined &&
+            result?.totalScore > 0 &&
+            result?.totalScore <= 9) {
+            console.log('✅ Graded: Has valid total score');
+            return true;
+        }
+
+        // ✅ Method 5: Check if any response has manual score
+        if (result?.responses && Array.isArray(result.responses)) {
+            const hasManualScores = result.responses.some(response =>
+                response.manualScore !== null &&
+                response.manualScore !== undefined &&
+                response.manualScore > 0
+            );
+
+            if (hasManualScores) {
+                console.log('✅ Graded: Has manual scores in responses');
+                return true;
+            }
+        }
+
+        console.log('❌ Not graded yet');
+        return false;
+    };
+
+    
+
     // ✅ UPDATED: Calculate basic stats with proper score handling
+    // ✅ REPLACE calculateStats function in SpeakingWritingResultPage.js
+
     const calculateStats = () => {
         const responses = result?.responses || [];
         const totalQuestions = responses.length;
@@ -72,10 +98,46 @@ const SpeakingWritingResultPage = ({ result, onViewDetailedResult }) => {
             r.responseText?.trim() || r.audioResponse?.trim() || r.audioBase64?.trim()
         ).length;
 
+        // ✅ FIXED: Better score logic for Speaking/Writing
+        const getResultScore = () => {
+            console.log('=== RESULT PAGE SCORE CALCULATION ===');
+            console.log('result object:', result);
+            console.log('finalScore:', result?.finalScore);
+            console.log('overallScore:', result?.overallScore);
+            console.log('totalScore:', result?.totalScore);
+            console.log('gradingStatus:', result?.gradingStatus);
+
+            // For Speaking/Writing: prioritize overallScore
+            if (result?.overallScore !== null && result?.overallScore !== undefined) {
+                console.log('✅ Using overallScore:', result.overallScore);
+                return result.overallScore;
+            }
+
+            // Fallback to finalScore
+            if (result?.finalScore !== null && result?.finalScore !== undefined) {
+                console.log('✅ Using finalScore:', result.finalScore);
+                return result.finalScore;
+            }
+
+            // Last fallback to totalScore
+            if (result?.totalScore !== null && result?.totalScore !== undefined) {
+                console.log('✅ Using totalScore:', result.totalScore);
+                return result.totalScore;
+            }
+
+            console.log('❌ No valid score found');
+            return null;
+        };
+
+        const scoreValue = isGradedByTeacher() ? getResultScore() : null;
+
+        console.log('Final score for display:', scoreValue);
+        console.log('isGradedByTeacher():', isGradedByTeacher());
+
         return {
             totalQuestions,
             completedResponses,
-            score: isGradedByTeacher() ? (result.finalScore || result.overallScore || result.totalScore) : null,
+            score: scoreValue,
             completionRate: totalQuestions > 0 ? Math.round((completedResponses / totalQuestions) * 100) : 0
         };
     };
@@ -476,28 +538,6 @@ const SpeakingWritingResultPage = ({ result, onViewDetailedResult }) => {
                     </div>
                 </div>
             </div>
-
-            {/*/!* ✅ DEBUG SECTION - Remove in production *!/*/}
-            {/*{process.env.NODE_ENV === 'development' && (*/}
-            {/*    <div style={{*/}
-            {/*        margin: '20px 0',*/}
-            {/*        padding: '10px',*/}
-            {/*        backgroundColor: '#f5f5f5',*/}
-            {/*        border: '1px solid #ccc',*/}
-            {/*        fontSize: '12px',*/}
-            {/*        fontFamily: 'monospace'*/}
-            {/*    }}>*/}
-            {/*        <strong>🐛 Debug Info (Development Only):</strong>*/}
-            {/*        <pre>{JSON.stringify({*/}
-            {/*            gradingStatus: result?.gradingStatus,*/}
-            {/*            overallScore: result?.overallScore,*/}
-            {/*            finalScore: result?.finalScore,*/}
-            {/*            graderId: result?.graderId,*/}
-            {/*            gradedAt: result?.gradedAt,*/}
-            {/*            isGraded: isGradedByTeacher()*/}
-            {/*        }, null, 2)}</pre>*/}
-            {/*    </div>*/}
-            {/*)}*/}
         </div>
     );
 };

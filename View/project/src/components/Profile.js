@@ -70,6 +70,8 @@ export default function Profile() {
     }, [currentUser?.id, navigate]);
 
     // ✅ Fetch test history from API
+    // ✅ FIXED fetchTestHistory function - Replace in Profile.js
+
     const fetchTestHistory = async (userId) => {
         try {
             const response = await fetch(`http://localhost:8080/api/test-attempts/user/${userId}`, {
@@ -86,18 +88,62 @@ export default function Profile() {
             const data = await response.json();
             console.log('✅ Test history received:', data);
 
-            // ✅ Transform data to expected format
-            return data.map(attempt => ({
-                id: attempt.id,
-                testName: attempt.testName || 'Unknown Test',
-                testType: attempt.testType || 'READING',
-                score: attempt.totalScore || 0,
-                totalQuestions: attempt.responses?.length || 0,
-                correctAnswers: attempt.responses?.filter(r => r.isCorrect === true).length || 0,
-                completionTime: calculateCompletionTime(attempt.startTime, attempt.endTime),
-                completedAt: attempt.endTime || attempt.startTime,
-                accuracy: calculateAccuracy(attempt.responses || [])
-            }));
+            // ✅ Transform data to expected format with FIXED score logic
+            return data.map(attempt => {
+                // ✅ FIX: Get appropriate score based on test type
+                const getDisplayScore = (attempt) => {
+                    const testType = attempt.testType || 'READING';
+
+                    // For Speaking/Writing: prioritize overallScore
+                    if (testType === 'SPEAKING' || testType === 'WRITING') {
+                        const overallScore = attempt.overallScore !== null ? attempt.overallScore : attempt.totalScore;
+                        console.log(`Score for ${testType} attempt ${attempt.id}:`, {
+                            overallScore: attempt.overallScore,
+                            totalScore: attempt.totalScore,
+                            displayScore: overallScore
+                        });
+                        return overallScore || 0;
+                    }
+
+                    // For other types: use totalScore
+                    return attempt.totalScore || 0;
+                };
+
+                // ✅ Check if test is properly graded
+                const isProperlyGraded = (attempt) => {
+                    const testType = attempt.testType || 'READING';
+
+                    if (testType === 'SPEAKING' || testType === 'WRITING') {
+                        // For Speaking/Writing: must have valid overallScore
+                        return attempt.overallScore !== null && attempt.overallScore !== undefined && attempt.overallScore > 0;
+                    } else {
+                        // For other types: check totalScore
+                        return attempt.totalScore !== null && attempt.totalScore !== undefined;
+                    }
+                };
+
+                const displayScore = getDisplayScore(attempt);
+                const isGraded = isProperlyGraded(attempt);
+
+                return {
+                    id: attempt.id,
+                    testName: attempt.testName || 'Unknown Test',
+                    testType: attempt.testType || 'READING',
+                    score: displayScore,
+
+                    // ✅ ADD: Additional score info for debugging
+                    originalTotalScore: attempt.totalScore,
+                    originalOverallScore: attempt.overallScore,
+                    isGraded: isGraded,
+                    gradingStatus: attempt.gradingStatus,
+
+                    totalQuestions: attempt.responses?.length || 0,
+                    correctAnswers: attempt.responses?.filter(r => r.isCorrect === true).length || 0,
+                    completionTime: calculateCompletionTime(attempt.startTime, attempt.endTime),
+                    completedAt: attempt.endTime || attempt.startTime,
+                    accuracy: calculateAccuracy(attempt.responses || [])
+                };
+            });
 
         } catch (error) {
             console.error('❌ Error fetching test history:', error);
@@ -365,29 +411,29 @@ export default function Profile() {
                         </div>
                     </div>
 
-                    <div id="current-streak-card" className="stats-card" style={{ padding: '24px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <div id="current-streak-icon" className="stats-icon" style={{ padding: '8px', borderRadius: '8px' }}>
-                                <span style={{ fontSize: '1.5rem' }}>🔥</span>
-                            </div>
-                            <div style={{ marginLeft: '16px' }}>
-                                <p style={{ fontSize: '0.875rem', fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>Streak hiện tại</p>
-                                <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', margin: '0' }}>{userInfo?.studyStats.studyStreak} ngày</p>
-                            </div>
-                        </div>
-                    </div>
+                    {/*<div id="current-streak-card" className="stats-card" style={{ padding: '24px' }}>*/}
+                    {/*    <div style={{ display: 'flex', alignItems: 'center' }}>*/}
+                    {/*        <div id="current-streak-icon" className="stats-icon" style={{ padding: '8px', borderRadius: '8px' }}>*/}
+                    {/*            <span style={{ fontSize: '1.5rem' }}>🔥</span>*/}
+                    {/*        </div>*/}
+                    {/*        /!*<div style={{ marginLeft: '16px' }}>*!/*/}
+                    {/*        /!*    <p style={{ fontSize: '0.875rem', fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>Streak hiện tại</p>*!/*/}
+                    {/*        /!*    <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', margin: '0' }}>{userInfo?.studyStats.studyStreak} ngày</p>*!/*/}
+                    {/*        /!*</div>*!/*/}
+                    {/*    </div>*/}
+                    {/*</div>*/}
 
-                    <div id="study-hours-card" className="stats-card" style={{ padding: '24px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <div id="study-hours-icon" className="stats-icon" style={{ padding: '8px', borderRadius: '8px' }}>
-                                <span style={{ fontSize: '1.5rem' }}>⏱️</span>
-                            </div>
-                            <div style={{ marginLeft: '16px' }}>
-                                <p style={{ fontSize: '0.875rem', fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>Tổng thời gian học</p>
-                                <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', margin: '0' }}>{userInfo?.studyStats.totalStudyHours}h</p>
-                            </div>
-                        </div>
-                    </div>
+                    {/*<div id="study-hours-card" className="stats-card" style={{ padding: '24px' }}>*/}
+                    {/*    <div style={{ display: 'flex', alignItems: 'center' }}>*/}
+                    {/*        <div id="study-hours-icon" className="stats-icon" style={{ padding: '8px', borderRadius: '8px' }}>*/}
+                    {/*            <span style={{ fontSize: '1.5rem' }}>⏱️</span>*/}
+                    {/*        </div>*/}
+                    {/*        <div style={{ marginLeft: '16px' }}>*/}
+                    {/*            <p style={{ fontSize: '0.875rem', fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>Tổng thời gian học</p>*/}
+                    {/*            <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', margin: '0' }}>{userInfo?.studyStats.totalStudyHours}h</p>*/}
+                    {/*        </div>*/}
+                    {/*    </div>*/}
+                    {/*</div>*/}
                 </div>
 
                 {/* Tabs */}

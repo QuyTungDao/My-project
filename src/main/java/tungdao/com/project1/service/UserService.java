@@ -1,8 +1,10 @@
 package tungdao.com.project1.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import tungdao.com.project1.entity.User;
 import tungdao.com.project1.repository.UserRepository;
 
@@ -120,4 +122,21 @@ public class UserService {
         return userRepository.findByFullNameContainingIgnoreCaseOrEmailContainingIgnoreCase(
                 searchTerm, searchTerm);
     }
+
+    public void deleteUserById(int id) {
+        userRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void deactivateUserById(int id) {
+        User u = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        u.setIsActive(false);
+        // JPA tự động save khi transaction commit
+    }
+
+    public List<User> getAllActiveUsers() {
+        return userRepository.findByIsActiveTrue();
+    }
 }
+

@@ -31,6 +31,7 @@ public class TestDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String creatorRole;
+    private Integer questionCount;
 
     // Không bao gồm danh sách questions, readingPassages, listeningAudios, attempts
     // để tránh vòng lặp vô tận

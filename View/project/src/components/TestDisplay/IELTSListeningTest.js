@@ -1,65 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Volume2, Settings, RotateCcw } from 'lucide-react';
 import './IELTSListening.css';
-
-// ✅ Try to import TableCompletionRenderer with fallback
-let TableCompletionRenderer;
-try {
-    TableCompletionRenderer = require('./TableCompletionRenderer').default;
-    console.log('✅ TableCompletionRenderer imported successfully');
-} catch (error) {
-    console.error('❌ Failed to import TableCompletionRenderer:', error);
-    // Fallback component
-    TableCompletionRenderer = ({ contextData, questions, userAnswers, onAnswerChange }) => {
-        console.log('🔧 Using fallback TableCompletionRenderer');
-        return (
-            <div style={{
-                padding: '16px',
-                border: '2px solid #f59e0b',
-                borderRadius: '8px',
-                background: '#fffbeb'
-            }}>
-                <h4 style={{ color: '#d97706', margin: '0 0 12px 0' }}>
-                    ⚠️ TableCompletionRenderer not available - Using fallback
-                </h4>
-                <pre style={{
-                    background: '#f3f4f6',
-                    padding: '12px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    overflow: 'auto',
-                    maxHeight: '200px'
-                }}>
-                    {contextData}
-                </pre>
-                <div style={{ marginTop: '12px' }}>
-                    {questions.map((q, idx) => (
-                        <div key={q.id || idx} style={{ marginBottom: '8px' }}>
-                            <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>
-                                Question {q.questionNumber || (idx + 1)}:
-                            </label>
-                            <input
-                                type="text"
-                                style={{
-                                    width: '100%',
-                                    padding: '8px',
-                                    border: '1px solid #d1d5db',
-                                    borderRadius: '4px'
-                                }}
-                                value={userAnswers[q.id] || ''}
-                                onChange={(e) => onAnswerChange(q.id, e.target.value)}
-                                placeholder="Your answer"
-                            />
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-    };
-}
-
-// ===== ENHANCED IELTS LISTENING COMPONENT =====
-// Integrates with existing Spring Boot backend structure
+import TableCompletionRenderer from "../CreateExam/TableCompletionRenderer";
 
 const IELTSListeningTest = ({
                                 test,
@@ -77,12 +19,13 @@ const IELTSListeningTest = ({
     const [currentRecording, setCurrentRecording] = useState(1);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0); // ✅ Add duration state
+    const [duration, setDuration] = useState(0);
     const [highlightMode, setHighlightMode] = useState(false);
     const [currentAudio, setCurrentAudio] = useState(null);
     const audioRef = useRef(null);
 
     // ✅ Map questions to recordings based on audioId
+    // ✅ FIXED: Map questions to recordings based on audioId
     const questionsByRecording = React.useMemo(() => {
         const grouped = {};
 
@@ -91,23 +34,43 @@ const IELTSListeningTest = ({
             grouped[i] = [];
         }
 
+        // ✅ FIXED: Remove duplicates first
+        const uniqueQuestions = questions.filter((question, index, self) =>
+            index === self.findIndex(q => (q.id || q.question_id) === (question.id || question.question_id))
+        );
+
         // Group questions by their audio association
-        questions.forEach(question => {
+        uniqueQuestions.forEach(question => {
             let recordingNum = 1;
 
             if (question.audioId || question.audio_id) {
-                // Find which recording this audio belongs to
                 const audioId = question.audioId || question.audio_id;
                 const audioIndex = audioList.findIndex(audio => audio.id === audioId);
                 recordingNum = audioIndex >= 0 ? audioIndex + 1 : 1;
             } else {
-                // Fallback: group by order_in_test
                 const orderInTest = question.orderInTest || question.order_in_test || 1;
-                recordingNum = Math.ceil(orderInTest / 10); // Assume 10 questions per recording
+                if (orderInTest <= 10) {
+                    recordingNum = 1;
+                } else if (orderInTest <= 20) {
+                    recordingNum = 2;
+                } else if (orderInTest <= 30) {
+                    recordingNum = 3;
+                } else {
+                    recordingNum = 4;
+                }
             }
 
-            recordingNum = Math.min(Math.max(recordingNum, 1), 4); // Ensure 1-4 range
+            recordingNum = Math.min(Math.max(recordingNum, 1), 4);
             grouped[recordingNum].push(question);
+        });
+
+        // ✅ FIXED: Sort questions within each recording
+        Object.keys(grouped).forEach(recordingNum => {
+            grouped[recordingNum].sort((a, b) => {
+                const orderA = a.orderInTest || a.order_in_test || 0;
+                const orderB = b.orderInTest || b.order_in_test || 0;
+                return orderA - orderB;
+            });
         });
 
         return grouped;
@@ -126,7 +89,7 @@ const IELTSListeningTest = ({
         };
     }, [currentRecording, audioList, questionsByRecording]);
 
-    // ✅ FIXED: Enhanced audio loading with better error handling
+    // ✅ Enhanced audio loading with better error handling
     useEffect(() => {
         const audioData = currentRecordingData.audio;
         const audio = audioRef.current;
@@ -147,7 +110,7 @@ const IELTSListeningTest = ({
         try {
             let audioSrc = null;
 
-            // ✅ ENHANCED: Try multiple audio source formats
+            // ✅ Try multiple audio source formats
             if (audioData.audioBase64 || audioData.base64Data) {
                 // Base64 audio data
                 const base64Data = audioData.audioBase64 || audioData.base64Data;
@@ -211,20 +174,7 @@ const IELTSListeningTest = ({
         const handleError = (e) => {
             console.error('❌ Audio error:', e);
             console.error('Audio src:', audio.src);
-            console.error('Audio error details:', {
-                error: audio.error,
-                networkState: audio.networkState,
-                readyState: audio.readyState
-            });
             setIsPlaying(false);
-        };
-
-        const handleCanPlay = () => {
-            console.log('✅ Audio can play');
-        };
-
-        const handleLoadStart = () => {
-            console.log('🔄 Audio load started');
         };
 
         // Add all event listeners
@@ -232,16 +182,12 @@ const IELTSListeningTest = ({
         audio.addEventListener('timeupdate', handleTimeUpdate);
         audio.addEventListener('ended', handleEnded);
         audio.addEventListener('error', handleError);
-        audio.addEventListener('canplay', handleCanPlay);
-        audio.addEventListener('loadstart', handleLoadStart);
 
         return () => {
             audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
             audio.removeEventListener('timeupdate', handleTimeUpdate);
             audio.removeEventListener('ended', handleEnded);
             audio.removeEventListener('error', handleError);
-            audio.removeEventListener('canplay', handleCanPlay);
-            audio.removeEventListener('loadstart', handleLoadStart);
         };
     }, [currentAudio]);
 
@@ -263,12 +209,6 @@ const IELTSListeningTest = ({
                 })
                 .catch(e => {
                     console.error('❌ Play error:', e);
-                    console.error('Audio details:', {
-                        src: audio.src,
-                        readyState: audio.readyState,
-                        networkState: audio.networkState,
-                        error: audio.error
-                    });
                 });
         }
         setIsPlaying(!isPlaying);
@@ -295,7 +235,89 @@ const IELTSListeningTest = ({
         return `${mins}:${remainingSecs.toString().padStart(2, '0')}`;
     };
 
-    // ✅ ENHANCED: Question rendering with table completion fix
+    // ✅ FIXED: Context data converter for TableCompletionRenderer
+    const convertContextToTableFormat = (contextData, questions) => {
+        console.log('🔧 Converting context to table format...');
+
+        // Check if already in JSON format
+        try {
+            const parsed = JSON.parse(contextData);
+            if (parsed.type === 'ielts_table_completion') {
+                console.log('✅ Context already in JSON format');
+                return contextData; // Already correct format
+            }
+        } catch (e) {
+            // Not JSON, need to convert
+            console.log('🔄 Converting plain text context to JSON...');
+        }
+
+        // Parse plain text/markdown to table structure
+        const lines = contextData.trim().split('\n').filter(line => line.trim());
+        let tableLines = [];
+        let title = 'Table Completion';
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (line && !line.includes('|') && !line.includes('-') && tableLines.length === 0) {
+                title = line; // First non-table line is title
+            } else if (line.includes('|') && !line.includes('---')) {
+                const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell !== '');
+                if (cells.length > 0) {
+                    tableLines.push(cells);
+                }
+            }
+        }
+
+        if (tableLines.length === 0) {
+            console.warn('⚠️ No table data found in context');
+            return null;
+        }
+
+        // Extract questions from table data
+        const questionsData = [];
+        tableLines.forEach((row, rowIndex) => {
+            row.forEach((cell, colIndex) => {
+                const match = cell.match(/___(\d+)___/);
+                if (match) {
+                    const questionNumber = parseInt(match[1]);
+                    const relatedQuestion = questions.find(q =>
+                        (q.orderInTest || q.order_in_test) === questionNumber
+                    );
+
+                    questionsData.push({
+                        questionNumber,
+                        position: { row: rowIndex, col: colIndex },
+                        correctAnswer: relatedQuestion?.correctAnswer || relatedQuestion?.correct_answer || '',
+                        placeholder: match[0]
+                    });
+                }
+            });
+        });
+
+        // Create JSON structure
+        const jsonStructure = {
+            id: `converted_table_${Date.now()}`,
+            type: 'ielts_table_completion',
+            title: title,
+            instructions: 'Complete the table below. Write NO MORE THAN TWO WORDS for each answer.',
+            structure: {
+                rows: tableLines.length,
+                columns: tableLines[0]?.length || 0,
+                hasHeaders: true
+            },
+            data: tableLines,
+            styling: {
+                columnWidths: Array(tableLines[0]?.length || 0).fill(120),
+                rowHeights: Array(tableLines.length).fill(35)
+            },
+            questions: questionsData
+        };
+
+        console.log('✅ Context converted to JSON:', jsonStructure);
+        return JSON.stringify(jsonStructure);
+    };
+
+    // ✅ ENHANCED: Question rendering with fixed TableCompletionRenderer integration
     const renderQuestionInput = (question) => {
         const questionId = question.id || question.question_id;
         const questionType = question.questionType || question.question_type;
@@ -304,17 +326,8 @@ const IELTSListeningTest = ({
         console.log('🔧 Rendering question:', {
             id: questionId,
             type: questionType,
-            hasContext: !!(question.context && question.context.trim()),
-            contextLength: question.context?.length || 0,
-            contextPreview: question.context?.substring(0, 100)
+            hasContext: !!(question.context && question.context.trim())
         });
-
-        // ✅ SPECIAL DEBUG for TABLE_COMPLETION
-        if (questionType === 'TABLE_COMPLETION') {
-            console.log('🎯 TABLE_COMPLETION detected!');
-            console.log('Context data:', question.context);
-            console.log('TableCompletionRenderer available:', !!TableCompletionRenderer);
-        }
 
         switch (questionType) {
             case 'MCQ':
@@ -343,8 +356,8 @@ const IELTSListeningTest = ({
                                     onChange={(e) => onAnswerChange(questionId, e.target.value)}
                                 />
                                 <span>
-                  {String.fromCharCode(65 + idx)}. {option}
-                </span>
+                                    {String.fromCharCode(65 + idx)}. {option}
+                                </span>
                             </label>
                         ))}
                     </div>
@@ -384,10 +397,9 @@ const IELTSListeningTest = ({
                 return renderFormFields(question);
 
             case 'TABLE_COMPLETION':
-                console.log('🎯 Processing TABLE_COMPLETION case');
+                console.log('🎯 Processing TABLE_COMPLETION');
                 console.log('Context available:', !!question.context);
                 console.log('Context length:', question.context?.length);
-                console.log('TableCompletionRenderer available:', !!TableCompletionRenderer);
 
                 if (question.context && question.context.trim()) {
                     console.log('✅ Using TableCompletionRenderer for TABLE_COMPLETION');
@@ -398,6 +410,24 @@ const IELTSListeningTest = ({
                     );
 
                     console.log('Table questions found:', tableQuestions.length);
+
+                    // ✅ FIXED: Convert context format if needed
+                    const contextForTable = convertContextToTableFormat(question.context, tableQuestions);
+
+                    if (!contextForTable) {
+                        return (
+                            <div style={{
+                                padding: '12px',
+                                border: '1px solid #f59e0b',
+                                borderRadius: '4px',
+                                background: '#fffbeb'
+                            }}>
+                                <p style={{ color: '#d97706', margin: 0 }}>
+                                    ⚠️ Unable to parse table data
+                                </p>
+                            </div>
+                        );
+                    }
 
                     try {
                         return (
@@ -410,10 +440,10 @@ const IELTSListeningTest = ({
                                     fontSize: '12px',
                                     color: '#0c4a6e'
                                 }}>
-                                    🔧 Debug: Rendering table with {tableQuestions.length} questions
+                                    🔧 Rendering table with {tableQuestions.length} questions
                                 </div>
                                 <TableCompletionRenderer
-                                    contextData={question.context}
+                                    contextData={contextForTable}
                                     questions={tableQuestions}
                                     userAnswers={userAnswers}
                                     onAnswerChange={onAnswerChange}
@@ -504,14 +534,14 @@ const IELTSListeningTest = ({
 
                             return (
                                 <span key={idx}>
-                  <input
-                      type="text"
-                      className="ielts-blank-input"
-                      value={userAnswers[blankId] || ''}
-                      onChange={(e) => onAnswerChange(blankId, e.target.value)}
-                      placeholder={blankNumber}
-                  />
-                </span>
+                                    <input
+                                        type="text"
+                                        className="ielts-blank-input"
+                                        value={userAnswers[blankId] || ''}
+                                        onChange={(e) => onAnswerChange(blankId, e.target.value)}
+                                        placeholder={blankNumber}
+                                    />
+                                </span>
                             );
                         } else {
                             // Regular text
@@ -559,12 +589,13 @@ const IELTSListeningTest = ({
         );
     };
 
-    // ✅ ENHANCED GROUP QUESTIONS BY CONTEXT - Fix duplicate display issue
+    // ✅ GROUP QUESTIONS BY CONTEXT - Fix duplicate display issue
+    // ✅ FIXED: Group questions by shared context properly
     const groupQuestionsByContext = (questions) => {
         const groups = [];
         const processedQuestions = new Set();
 
-        // First, identify all unique contexts
+        // First, find questions that share the same context
         const contextGroups = new Map();
 
         questions.forEach(question => {
@@ -575,18 +606,11 @@ const IELTSListeningTest = ({
             // Skip if already processed
             if (processedQuestions.has(questionId)) return;
 
-            console.log('🔄 Processing question for grouping:', {
-                id: questionId,
-                type: questionType,
-                hasContext: !!(context && context.trim()),
-                contextLength: context?.length || 0
-            });
-
-            // Check if this is a context-based question type
-            const isContextBasedType = ['NOTE_COMPLETION', 'TABLE_COMPLETION', 'FORM_FILLING', 'FILL_IN_THE_BLANK'].includes(questionType);
+            // For fill-in-blank types, group by context
+            const isContextBasedType = ['NOTE_COMPLETION', 'FILL_IN_THE_BLANK', 'LISTENING_FILL_IN_THE_BLANK', 'FORM_FILLING'].includes(questionType);
 
             if (context && context.trim() && isContextBasedType) {
-                // Normalize context for comparison (trim whitespace, remove extra spaces)
+                // Normalize context for comparison
                 const normalizedContext = context.trim().replace(/\s+/g, ' ');
 
                 if (!contextGroups.has(normalizedContext)) {
@@ -598,7 +622,6 @@ const IELTSListeningTest = ({
                     });
                 }
 
-                // Add question to context group
                 contextGroups.get(normalizedContext).questions.push(question);
                 processedQuestions.add(questionId);
             }
@@ -607,8 +630,6 @@ const IELTSListeningTest = ({
         // Create groups from context groups
         contextGroups.forEach((contextData, normalizedContext) => {
             if (contextData.questions.length > 0) {
-                console.log(`📦 Creating context group with ${contextData.questions.length} questions`);
-
                 // Sort questions by order
                 contextData.questions.sort((a, b) => {
                     const orderA = a.orderInTest || a.order_in_test || 0;
@@ -629,7 +650,6 @@ const IELTSListeningTest = ({
         // Add individual questions (those without context or different types)
         questions.forEach(question => {
             const questionId = question.id || question.question_id;
-
             if (!processedQuestions.has(questionId)) {
                 groups.push({
                     type: 'INDIVIDUAL',
@@ -639,32 +659,36 @@ const IELTSListeningTest = ({
             }
         });
 
-        console.log(`✅ Created ${groups.length} question groups (${contextGroups.size} context groups)`);
         return groups;
     };
 
     // ✅ Render a group of questions with shared context
+    // ✅ FIXED: Render question group properly
     const renderQuestionGroup = (group, groupIndex) => {
         if (group.type === 'CONTEXT_GROUP') {
             const { contextType, context, questions, instructions } = group;
-
-            console.log(`🎯 Rendering context group with ${questions.length} questions`);
 
             return (
                 <div key={`group-${groupIndex}`} className="ielts-question-group">
                     {/* Group Header */}
                     <div className="ielts-group-header">
                         <div className="ielts-group-title">
-                            <span className="ielts-group-type">{contextType}</span>
+                            <span className="ielts-group-type">{contextType.replace(/_/g, ' ')}</span>
                             <span className="ielts-group-range">
-                                Questions {questions[0]?.orderInTest || questions[0]?.order_in_test} - {questions[questions.length - 1]?.orderInTest || questions[questions.length - 1]?.order_in_test}
-                            </span>
+                            Questions {questions[0]?.orderInTest || questions[0]?.order_in_test} - {questions[questions.length - 1]?.orderInTest || questions[questions.length - 1]?.order_in_test}
+                        </span>
                         </div>
                     </div>
 
                     {/* Instructions */}
                     {instructions && (
-                        <div className="ielts-question-instructions">
+                        <div className="ielts-question-instructions" style={{
+                            background: '#f8fafc',
+                            padding: '12px',
+                            borderRadius: '6px',
+                            margin: '12px 0',
+                            border: '1px solid #e2e8f0'
+                        }}>
                             {instructions}
                         </div>
                     )}
@@ -673,26 +697,39 @@ const IELTSListeningTest = ({
                     {contextType === 'TABLE_COMPLETION' ? (
                         // Use TableCompletionRenderer for table
                         <div className="ielts-table-group">
-                            <TableCompletionRenderer
-                                contextData={context}
-                                questions={questions}
-                                userAnswers={userAnswers}
-                                onAnswerChange={onAnswerChange}
-                                isSubmitted={submitting}
-                                showResults={false}
-                            />
+                            {renderQuestionInput(questions[0])}
                         </div>
                     ) : (
-                        // Use context with blanks for other types
-                        <div className="ielts-context-group">
+                        // ✅ FIXED: Use inline context rendering for fill-in-blank types
+                        <div className="ielts-context-group" style={{
+                            background: '#fff',
+                            padding: '16px',
+                            borderRadius: '8px',
+                            border: '1px solid #d1d5db',
+                            lineHeight: '1.6'
+                        }}>
                             {renderContextWithBlanksForGroup(context, questions)}
                         </div>
                     )}
+
+                    {/* Show question summary */}
+                    <div className="ielts-questions-summary" style={{
+                        marginTop: '12px',
+                        padding: '8px',
+                        background: '#f1f5f9',
+                        borderRadius: '4px',
+                        fontSize: '14px',
+                        color: '#64748b'
+                    }}>
+                        <strong>Questions in this section:</strong> {questions.map(q => q.orderInTest || q.order_in_test).join(', ')}
+                        <br />
+                        <strong>Answered:</strong> {questions.filter(q => userAnswers[q.id || q.question_id]).length} / {questions.length}
+                    </div>
                 </div>
             );
 
         } else {
-            // Individual question
+            // Individual question - keep existing logic
             const question = group.question;
             const questionId = question.id || question.question_id;
             const questionText = question.questionText || question.question_text;
@@ -717,7 +754,7 @@ const IELTSListeningTest = ({
     };
 
     // ✅ Render context with blanks for a group of questions
-    // Thay thế hàm renderContextWithBlanksForGroup
+    // ✅ FIXED: Render context with ALL input boxes inline
     const renderContextWithBlanksForGroup = (context, questions) => {
         // Split context by placeholders
         const parts = context.split(/(___\d+___)/);
@@ -732,7 +769,7 @@ const IELTSListeningTest = ({
                         if (placeholderMatch) {
                             const questionNumber = parseInt(placeholderMatch[1]);
 
-                            // Find the question with this number
+                            // Find the question with this order number
                             const targetQuestion = questions.find(q => {
                                 const orderInTest = q.orderInTest || q.order_in_test;
                                 return orderInTest === questionNumber;
@@ -740,29 +777,46 @@ const IELTSListeningTest = ({
 
                             if (targetQuestion) {
                                 const questionId = targetQuestion.id || targetQuestion.question_id;
+                                const isAnswered = userAnswers[questionId] && userAnswers[questionId].trim() !== '';
+
                                 return (
                                     <span key={idx} className="ielts-inline-question">
-                                    <span className="ielts-question-number-inline">
-                                        {questionNumber}
-                                    </span>
                                     <input
                                         type="text"
-                                        className="ielts-blank-input"
+                                        className={`ielts-blank-input ${isAnswered ? 'answered' : ''}`}
                                         value={userAnswers[questionId] || ''}
                                         onChange={(e) => onAnswerChange(questionId, e.target.value)}
                                         placeholder={`${questionNumber}`}
+                                        title={`Question ${questionNumber}`}
+                                        style={{
+                                            minWidth: '80px',
+                                            width: 'auto',
+                                            display: 'inline-block',
+                                            margin: '0 2px',
+                                            padding: '4px 8px',
+                                            border: '2px solid #ccc',
+                                            borderRadius: '4px',
+                                            fontSize: '14px',
+                                            backgroundColor: isAnswered ? '#f0f9ff' : '#fff'
+                                        }}
                                     />
                                 </span>
                                 );
                             } else {
                                 return (
-                                    <span key={idx} className="ielts-missing-question">
+                                    <span key={idx} className="ielts-missing-question" style={{
+                                        color: '#dc2626',
+                                        fontWeight: 'bold',
+                                        backgroundColor: '#fef2f2',
+                                        padding: '2px 4px',
+                                        borderRadius: '2px'
+                                    }}>
                                     ____{questionNumber}____
                                 </span>
                                 );
                             }
                         } else {
-                            // ✅ FIX: Preserve line breaks cho regular text
+                            // Regular text - preserve formatting
                             return (
                                 <span
                                     key={idx}
@@ -777,11 +831,6 @@ const IELTSListeningTest = ({
                 </div>
             </div>
         );
-    };
-
-    // ✅ Get question status for sidebar
-    const getQuestionStatus = (questionId) => {
-        return userAnswers[questionId] ? 'answered' : 'unanswered';
     };
 
     return (
@@ -824,16 +873,12 @@ const IELTSListeningTest = ({
                                         currentRecording === recordingNum ? 'active' : ''
                                     }`}>
                                     Recording {recordingNum}
-                                    {/* ✅ Hiển thị tên audio từ DB */}
-                                    <span className="recording-title">
-                                        {audio.title || `Section ${recordingNum}`}
-                                    </span>
                                 </button>
                             );
                         })}
                     </div>
 
-                    {/* ✅ ENHANCED: Audio Player with better controls */}
+                    {/* Audio Player */}
                     <div className="ielts-audio-player">
                         <div className="ielts-audio-controls">
                             <button
@@ -877,7 +922,7 @@ const IELTSListeningTest = ({
                             </div>
                         </div>
 
-                        {/* ✅ Enhanced Audio Info */}
+                        {/* Audio Info */}
                         <div className="ielts-audio-info">
                             {currentAudio ? (
                                 <>
@@ -916,7 +961,7 @@ const IELTSListeningTest = ({
                             </p>
                         </div>
 
-                        {/* ✅ ENHANCED: Questions with proper grouping */}
+                        {/* Questions with proper grouping */}
                         <div className="ielts-questions-list">
                             {(() => {
                                 const questionGroups = groupQuestionsByContext(currentRecordingData.questions);
@@ -945,15 +990,14 @@ const IELTSListeningTest = ({
                 </div>
 
                 {/* Sidebar */}
-                {/* Sidebar - ĐỒNG BỘ VỚI READING */}
                 <div className="test-sidebar">
-                    {/* Timer giống Reading */}
+                    {/* Timer */}
                     <div className="sidebar-timer">
                         <h3>Thời gian còn lại:</h3>
                         <div className="time-display">{formatTimerLarge(timer)}</div>
                     </div>
 
-                    {/* Submit button giống Reading */}
+                    {/* Submit button */}
                     <button
                         className="submit-button"
                         onClick={onSubmit}
@@ -962,17 +1006,17 @@ const IELTSListeningTest = ({
                         {submitting ? 'ĐANG NỘP...' : 'NỘP BÀI'}
                     </button>
 
-                    {/* Save progress giống Reading */}
+                    {/* Save progress */}
                     <div className="save-progress" onClick={onSaveProgress}>
                         <span className="save-icon">↩</span> Khôi phục/lưu bài làm
                     </div>
 
-                    {/* Review note giống Reading */}
+                    {/* Review note */}
                     <div className="review-note">
                         <strong>Chú ý:</strong> bạn có thể click vào số thứ tự câu hỏi trong bài để đánh dấu review. Có thể phát lại audio nhiều lần.
                     </div>
 
-                    {/* ✅ DYNAMIC Question Navigation - dựa trên audioList thay vì hardcode [1,2,3,4] */}
+                    {/* Question Navigation */}
                     {audioList.map((audio, audioIndex) => {
                         const recordingNum = audioIndex + 1;
                         const recordingQuestions = questionsByRecording[recordingNum] || [];
@@ -1009,7 +1053,6 @@ const IELTSListeningTest = ({
                                                 }`}
                                                 onClick={() => {
                                                     setCurrentRecording(recordingNum);
-                                                    // Scroll to question logic có thể thêm sau
                                                 }}
                                             >
                                                 {orderInTest}
@@ -1021,7 +1064,7 @@ const IELTSListeningTest = ({
                         );
                     })}
 
-                    {/* Progress Summary giống Reading */}
+                    {/* Progress Summary */}
                     <div className="progress-summary">
                         <div className="progress-text">
                             <span className="font-medium">Tiến độ:</span> {Object.keys(userAnswers).length}/{questions.length} đã trả lời
@@ -1030,7 +1073,7 @@ const IELTSListeningTest = ({
                 </div>
             </div>
 
-            {/* ✅ Enhanced Audio Element with better error handling */}
+            {/* Audio Element */}
             <audio
                 ref={audioRef}
                 preload="metadata"

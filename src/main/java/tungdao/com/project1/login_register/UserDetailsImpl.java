@@ -18,6 +18,7 @@ public class UserDetailsImpl implements UserDetails {
     private final String username;
     @JsonIgnore
     private final String password;
+    private final String fullName;
     private final Collection<? extends GrantedAuthority> authorities;
     private final boolean enabled;
 
@@ -25,6 +26,7 @@ public class UserDetailsImpl implements UserDetails {
         this.id = u.getId();
         this.username = u.getEmail();
         this.password = u.getPassword();
+        this.fullName = u.getFullName();
 
         // Log thông tin password đã mã hóa để debug
         logger.debug("Creating UserDetailsImpl with encoded password: {}", this.password);
@@ -43,6 +45,10 @@ public class UserDetailsImpl implements UserDetails {
     public static UserDetailsImpl build(User u) {
         logger.info("Building UserDetailsImpl for user: {}", u.getEmail());
         return new UserDetailsImpl(u);
+    }
+
+    public String getFullName() {
+        return fullName;
     }
 
     @Override
@@ -87,6 +93,7 @@ public class UserDetailsImpl implements UserDetails {
         return "UserDetailsImpl{" +
                 "id=" + id +
                 ", username='" + username + '\'' +
+                ", fullName='" + fullName + '\'' +
                 ", enabled=" + enabled +
                 ", authorities=" + authorities +
                 '}';

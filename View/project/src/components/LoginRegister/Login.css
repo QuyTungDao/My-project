@@ -6,7 +6,7 @@
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #cbd5e0 100%);
     padding: 2rem 1rem;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
@@ -64,15 +64,15 @@
 
 .login-input {
     width: 100%;
-    padding: 1rem 1.25rem;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
     font-size: 1rem;
     transition: all 0.3s ease;
     background: #ffffff;
     color: #334155;
     outline: none;
     box-sizing: border-box;
+    border-radius: 25px; /* từ 12px lên 25px */
+    padding: 1.2rem 1.5rem; /* tăng padding */
+    border: 2px solid #e2e8f0;
 }
 
 .login-input:focus {

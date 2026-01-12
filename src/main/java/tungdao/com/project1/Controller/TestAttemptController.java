@@ -102,7 +102,7 @@ public class TestAttemptController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getTestAttemptById(@PathVariable Integer id) {
         try {
-            System.out.println("=== GETTING COMPLETE TEST RESULT WITH AUDIO ===");
+            System.out.println("=== GETTING COMPLETE TEST RESULT WITH ENHANCED GRADING INFO ===");
             System.out.println("Requested attempt ID: " + id);
 
             TestAttempt attempt = testAttemptService.getTestAttemptById(id);
@@ -115,11 +115,15 @@ public class TestAttemptController {
             System.out.println("✅ Test ID: " + attempt.getTest().getId());
             System.out.println("✅ Test Type: " + attempt.getTest().getTestType());
 
-            // ✅ STEP 1: Get ALL questions from the test (this is what frontend needs)
+            // ✅ ENHANCED: Check if this is Speaking/Writing test
+            boolean isSpeakingWritingTest = isSpeakingWritingTestType(attempt.getTest().getTestType());
+            System.out.println("✅ Is Speaking/Writing test: " + isSpeakingWritingTest);
+
+            // ✅ STEP 1: Get ALL questions from the test
             List<Question> allTestQuestions = questionRepository.findByTestIdOrderByOrderInTest(attempt.getTest().getId());
             System.out.println("✅ Total questions in test: " + allTestQuestions.size());
 
-            // ✅ STEP 2: Get only ACTUAL responses from database (what student answered)
+            // ✅ STEP 2: Get only ACTUAL responses from database
             List<StudentResponse> actualResponses = studentResponseRepository.findByAttemptId(id);
             System.out.println("✅ Actual responses from student: " + actualResponses.size());
 
@@ -129,7 +133,7 @@ public class TestAttemptController {
                 responseMap.put(response.getQuestion().getId(), response);
             }
 
-            // ✅ STEP 4: Build enhanced DTO with test type
+            // ✅ STEP 4: Build enhanced DTO with FIXED grading info
             TestAttemptDTO attemptDTO = new TestAttemptDTO();
             attemptDTO.setId(attempt.getId());
 
@@ -152,13 +156,55 @@ public class TestAttemptController {
             attemptDTO.setStartTime(attempt.getStartTime());
             attemptDTO.setEndTime(attempt.getEndTime());
             attemptDTO.setIsCompleted(attempt.getIsCompleted());
-            attemptDTO.setListeningScore(attempt.getListeningScore());
-            attemptDTO.setReadingScore(attempt.getReadingScore());
-            attemptDTO.setWritingScore(attempt.getWritingScore());
-            attemptDTO.setSpeakingScore(attempt.getSpeakingScore());
-            attemptDTO.setTotalScore(attempt.getTotalScore());
 
-            // ✅ STEP 5: Create response DTOs for ALL questions with enhanced question type mapping
+            // ✅ ENHANCED: Handle scores based on test type
+            if (isSpeakingWritingTest) {
+                // ✅ For Speaking/Writing: Use overallScore if available, fallback to totalScore
+                if (attempt.getOverallScore() != null) {
+                    attemptDTO.setTotalScore(attempt.getOverallScore());
+                    System.out.println("✅ Using overallScore for Speaking/Writing: " + attempt.getOverallScore());
+                } else {
+                    attemptDTO.setTotalScore(attempt.getTotalScore());
+                    System.out.println("⚠️ Fallback to totalScore for Speaking/Writing: " + attempt.getTotalScore());
+                }
+
+                // ✅ CRITICAL: Include grading information
+                attemptDTO.setOverallScore(attempt.getOverallScore());
+                attemptDTO.setGradingStatus(attempt.getGradingStatus() != null ?
+                        attempt.getGradingStatus().toString() : null);
+                attemptDTO.setGradedAt(attempt.getGradedAt());
+                attemptDTO.setOverallFeedback(attempt.getOverallFeedback());
+
+                if (attempt.getGrader() != null) {
+                    attemptDTO.setGraderName(attempt.getGrader().getFullName());
+                }
+
+                // ✅ Set individual skill scores
+                if (attempt.getTest().getTestType() == TestType.SPEAKING) {
+                    attemptDTO.setSpeakingScore(attempt.getSpeakingScore() != null ?
+                            attempt.getSpeakingScore() : attempt.getOverallScore());
+                } else if (attempt.getTest().getTestType() == TestType.WRITING) {
+                    attemptDTO.setWritingScore(attempt.getWritingScore() != null ?
+                            attempt.getWritingScore() : attempt.getOverallScore());
+                }
+
+                System.out.println("✅ Enhanced grading info added:");
+                System.out.println("  - overallScore: " + attemptDTO.getOverallScore());
+                System.out.println("  - gradingStatus: " + attemptDTO.getGradingStatus());
+                System.out.println("  - gradedAt: " + attemptDTO.getGradedAt());
+
+            } else {
+                // ✅ For Reading/Listening: Use standard scores
+                attemptDTO.setListeningScore(attempt.getListeningScore());
+                attemptDTO.setReadingScore(attempt.getReadingScore());
+                attemptDTO.setWritingScore(attempt.getWritingScore());
+                attemptDTO.setSpeakingScore(attempt.getSpeakingScore());
+                attemptDTO.setTotalScore(attempt.getTotalScore());
+
+                System.out.println("✅ Using standard totalScore for Reading/Listening: " + attempt.getTotalScore());
+            }
+
+            // ✅ STEP 5: Create response DTOs for ALL questions (existing logic unchanged)
             List<StudentResponseDTO> completeResponseDTOs = new ArrayList<>();
 
             for (Question question : allTestQuestions) {
@@ -173,9 +219,8 @@ public class TestAttemptController {
                 // ✅ ENHANCED: Map question type based on test type
                 String questionType = mapQuestionTypeForFrontend(question, attempt.getTest());
                 responseDTO.setQuestionType(questionType);
-                System.out.println("✅ Q" + question.getId() + " type mapped to: " + questionType);
 
-                responseDTO.setOrderInTest(question.getOrderInTest()); // ← Consistent numbering
+                responseDTO.setOrderInTest(question.getOrderInTest());
 
                 // ✅ Always set passage/audio relationships
                 if (question.getPassage() != null) {
@@ -193,36 +238,35 @@ public class TestAttemptController {
                     // ✅ HANDLE TEXT RESPONSES
                     if (actualResponse.getResponseText() != null && !actualResponse.getResponseText().trim().isEmpty()) {
                         responseDTO.setResponseText(actualResponse.getResponseText());
-                        System.out.println("Q" + question.getId() + ": TEXT response provided");
                     }
 
                     // ✅ ENHANCED: HANDLE AUDIO RESPONSES
                     if (actualResponse.getAudioBase64() != null && !actualResponse.getAudioBase64().trim().isEmpty()) {
                         responseDTO.setAudioResponse(actualResponse.getAudioBase64());
+                        responseDTO.setAudioBase64(actualResponse.getAudioBase64()); // For consistency
                         responseDTO.setAudioDuration(actualResponse.getAudioDurationSeconds());
                         responseDTO.setAudioFileType(actualResponse.getAudioFileType());
                         responseDTO.setAudioFileSize(actualResponse.getAudioFileSize());
-
-                        System.out.println("Q" + question.getId() + ": AUDIO response provided");
-                        System.out.println("  - Duration: " + actualResponse.getAudioDurationSeconds() + "s");
-                        System.out.println("  - File type: " + actualResponse.getAudioFileType());
-                        System.out.println("  - Size: " + actualResponse.getAudioFileSize() + " bytes");
-                        System.out.println("  - Audio data: " + actualResponse.getAudioBase64().length() + " chars");
                     }
 
-                    // ✅ ENHANCED: Calculate correctness based on response type
+                    // ✅ ENHANCED: Include manual grading info for Speaking/Writing
+                    if (isSpeakingWritingTest) {
+                        responseDTO.setManualScore(actualResponse.getManualScore());
+                        responseDTO.setFeedback(actualResponse.getFeedback());
+                        responseDTO.setFeedbackGivenAt(actualResponse.getFeedbackGivenAt());
+
+                        if (actualResponse.getGrader() != null) {
+                            responseDTO.setGraderName(actualResponse.getGrader().getFullName());
+                        }
+                    }
+
+                    // ✅ Calculate correctness based on response type
                     if (isSpeakingQuestion(question.getQuestionType())) {
-                        // ✅ SPEAKING QUESTIONS: Manual grading required
-                        responseDTO.setIsCorrect(actualResponse.getIsCorrect()); // null for pending
+                        responseDTO.setIsCorrect(actualResponse.getIsCorrect());
                         responseDTO.setCorrectAnswer("Requires manual grading");
-                        System.out.println("Q" + question.getId() + ": SPEAKING - manual grading required");
-
                     } else if (isWritingQuestion(question.getQuestionType())) {
-                        // ✅ WRITING QUESTIONS: Manual grading required
-                        responseDTO.setIsCorrect(actualResponse.getIsCorrect()); // null for pending
+                        responseDTO.setIsCorrect(actualResponse.getIsCorrect());
                         responseDTO.setCorrectAnswer("Requires manual grading");
-                        System.out.println("Q" + question.getId() + ": WRITING - manual grading required");
-
                     } else {
                         // ✅ OBJECTIVE QUESTIONS: Auto-graded
                         CorrectAnswer correctAnswer = correctAnswerService.getByQuestionId(question.getId());
@@ -230,26 +274,20 @@ public class TestAttemptController {
                             boolean isCorrect = checkAnswerOnTheFly(actualResponse.getResponseText(), correctAnswer);
                             responseDTO.setIsCorrect(isCorrect);
                             responseDTO.setCorrectAnswer(correctAnswer.getCorrectAnswerText());
-
-                            System.out.println("Q" + question.getId() + ": OBJECTIVE ANSWERED '" +
-                                    actualResponse.getResponseText() + "' -> " +
-                                    (isCorrect ? "CORRECT" : "INCORRECT"));
                         } else {
                             responseDTO.setIsCorrect(false);
                             responseDTO.setCorrectAnswer("No answer key available");
-                            System.out.println("Q" + question.getId() + ": No correct answer found");
                         }
                     }
 
                 } else {
-                    // ✅ SKIPPED: No response in database
+                    // ✅ SKIPPED: No response in database (existing logic)
                     responseDTO.setId(null);
                     responseDTO.setResponseText(null);
                     responseDTO.setAudioResponse(null);
                     responseDTO.setIsCorrect(false);
                     responseDTO.setSubmittedAt(null);
 
-                    // ✅ STILL provide correct answer info for skipped questions
                     if (isSpeakingQuestion(question.getQuestionType())) {
                         responseDTO.setCorrectAnswer("Speaking task - not answered");
                     } else if (isWritingQuestion(question.getQuestionType())) {
@@ -258,10 +296,8 @@ public class TestAttemptController {
                         CorrectAnswer correctAnswer = correctAnswerService.getByQuestionId(question.getId());
                         if (correctAnswer != null) {
                             responseDTO.setCorrectAnswer(correctAnswer.getCorrectAnswerText());
-                            System.out.println("Q" + question.getId() + ": SKIPPED - but correct answer provided");
                         } else {
                             responseDTO.setCorrectAnswer("No answer key available");
-                            System.out.println("Q" + question.getId() + ": SKIPPED - no correct answer found");
                         }
                     }
                 }
@@ -278,21 +314,27 @@ public class TestAttemptController {
 
             attemptDTO.setResponses(completeResponseDTOs);
 
-            // ✅ FINAL SUMMARY with test type
-            System.out.println("=== COMPLETE RESULT SUMMARY ===");
+            // ✅ ENHANCED FINAL SUMMARY
+            System.out.println("=== ENHANCED RESULT SUMMARY ===");
             System.out.println("Test Type: " + attemptDTO.getTestType());
-            System.out.println("Total questions in test: " + allTestQuestions.size());
-            System.out.println("Actual responses from student: " + actualResponses.size());
+            System.out.println("Is Speaking/Writing: " + isSpeakingWritingTest);
+            System.out.println("Total Score (display): " + attemptDTO.getTotalScore());
+            System.out.println("Overall Score: " + attemptDTO.getOverallScore());
+            System.out.println("Grading Status: " + attemptDTO.getGradingStatus());
             System.out.println("Complete DTOs returned: " + completeResponseDTOs.size());
 
             return ResponseEntity.ok(attemptDTO);
 
         } catch (Exception e) {
-            System.err.println("❌ Error in getTestAttemptById: " + e.getMessage());
+            System.err.println("❌ Error in enhanced getTestAttemptById: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Lỗi khi lấy kết quả làm bài: " + e.getMessage());
         }
+    }
+
+    private boolean isSpeakingWritingTestType(TestType testType) {
+        return testType == TestType.SPEAKING || testType == TestType.WRITING;
     }
 
     // ✅ NEW: Enhanced question type mapping for frontend

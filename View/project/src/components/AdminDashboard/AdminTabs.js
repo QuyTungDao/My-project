@@ -21,28 +21,28 @@ export const OverviewTab = ({ dashboardStats, recentActivity, openModal }) => (
             <StatCard
                 title="Tổng người dùng"
                 value={dashboardStats.totalUsers?.toLocaleString() || '0'}
-                change={dashboardStats.userGrowthRate}
+                // change={dashboardStats.userGrowthRate}
                 icon={<Users />}
                 color="blue"
             />
             <StatCard
                 title="Tổng bài thi"
                 value={dashboardStats.totalTests || 0}
-                change={dashboardStats.testGrowthRate}
+                // change={dashboardStats.testGrowthRate}
                 icon={<BookOpen />}
                 color="green"
             />
             <StatCard
                 title="Tổng Flashcards"
                 value={dashboardStats.totalFlashcards?.toLocaleString() || '0'}
-                change={dashboardStats.flashcardGrowthRate}
+                // change={dashboardStats.flashcardGrowthRate}
                 icon={<CreditCard />}
                 color="purple"
             />
             <StatCard
                 title="Người dùng hoạt động"
                 value={dashboardStats.activeUsers || 0}
-                change={dashboardStats.activeUserGrowthRate}
+                // change={dashboardStats.activeUserGrowthRate}
                 icon={<UserCheck />}
                 color="orange"
             />
@@ -60,13 +60,13 @@ export const OverviewTab = ({ dashboardStats, recentActivity, openModal }) => (
                     <span className="quick-action-text">Tạo bài thi mới</span>
                 </button>
 
-                <button
-                    onClick={() => openModal('create', 'users')}
-                    className="quick-action-item"
-                >
-                    <Plus className="quick-action-icon" />
-                    <span className="quick-action-text">Thêm người dùng</span>
-                </button>
+                {/*<button*/}
+                {/*    onClick={() => openModal('create', 'users')}*/}
+                {/*    className="quick-action-item"*/}
+                {/*>*/}
+                {/*    <Plus className="quick-action-icon" />*/}
+                {/*    <span className="quick-action-text">Thêm người dùng</span>*/}
+                {/*</button>*/}
 
                 <button
                     onClick={() => openModal('create', 'flashcards')}

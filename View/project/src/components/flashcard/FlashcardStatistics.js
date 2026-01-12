@@ -147,12 +147,12 @@ const FlashcardStatistics = () => {
                     <div className="statistics-label green">Tổng từ đã học</div>
                 </div>
 
-                <div className="statistics-card orange">
-                    <div className="statistics-number orange">
-                        {Math.round(stats.accuracy || 0)}%
-                    </div>
-                    <div className="statistics-label orange">Độ chính xác</div>
-                </div>
+                {/*<div className="statistics-card orange">*/}
+                {/*    <div className="statistics-number orange">*/}
+                {/*        {Math.round(stats.accuracy || 0)}%*/}
+                {/*    </div>*/}
+                {/*    /!*<div className="statistics-label orange">Độ chính xác</div>*!/*/}
+                {/*</div>*/}
             </div>
 
             {/* Mastery Breakdown */}

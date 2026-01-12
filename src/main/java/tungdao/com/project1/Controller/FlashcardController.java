@@ -3,15 +3,13 @@ package tungdao.com.project1.Controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import tungdao.com.project1.dto.CreateFlashcardRequest;
 import tungdao.com.project1.dto.FlashcardStatistics;
 import tungdao.com.project1.dto.RateFlashcardRequest;
 import tungdao.com.project1.entity.FlashCard;
-import tungdao.com.project1.entity.StudentFlashcardProgress;
 import tungdao.com.project1.entity.User;
 import tungdao.com.project1.service.FlashcardService;
 
@@ -214,5 +212,17 @@ public class FlashcardController {
         // Add other fields if needed by service methods
 
         return user;
+    }
+
+    @PatchMapping("/{id}/deactivate")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deactivateFlashcard(@PathVariable int id) {
+        flashcardService.deactivateFlashcardById(id);
+        return ResponseEntity.ok("Flashcard deactivated");
+    }
+
+    @GetMapping
+    public List<FlashCard> listActiveFlashcards() {
+        return flashcardService.getAllActiveFlashcards();
     }
 }

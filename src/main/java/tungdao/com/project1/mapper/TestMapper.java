@@ -22,6 +22,7 @@ public class TestMapper {
         dto.setId(test.getId());
         dto.setCreatorId(test.getCreator() != null ? test.getCreator().getId() : null);
         dto.setCreatorName(test.getCreator() != null ? test.getCreator().getFullName() : null);
+        dto.setCreatorEmail(test.getCreator() != null ? test.getCreator().getEmail() : null); // ← THÊM
         dto.setTestName(test.getTestName());
         dto.setTestType(test.getTestType());
         dto.setDescription(test.getDescription());
@@ -32,6 +33,7 @@ public class TestMapper {
         dto.setIsPublished(test.getIsPublished());
         dto.setCreatedAt(test.getCreatedAt());
         dto.setUpdatedAt(test.getUpdatedAt());
+        dto.setQuestionCount(test.getQuestions() != null ? test.getQuestions().size() : 0);
 
         return dto;
     }

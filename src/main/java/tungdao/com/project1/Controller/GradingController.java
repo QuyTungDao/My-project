@@ -46,16 +46,18 @@ public class GradingController {
     /**
      * Get all submissions for a specific test (Teacher/Admin only)
      */
+    // ✅ FIXED VERSION - Replace the getTestSubmissions method
+
     @GetMapping("/test/{testId}/submissions")
     @PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
     @Transactional(readOnly = true)
     public ResponseEntity<?> getTestSubmissions(@PathVariable Integer testId,
                                                 @AuthenticationPrincipal UserDetailsImpl userDetails) {
         try {
-            System.out.println("=== GETTING TEST SUBMISSIONS ===");
+            System.out.println("=== GETTING TEST SUBMISSIONS (FIXED) ===");
             System.out.println("Test ID: " + testId);
 
-            // Permission check
+            // Permission check (same as before)
             Test test = testRepository.findById(testId).orElse(null);
             if (test == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -97,20 +99,46 @@ public class GradingController {
                         submission.put("studentEmail", attempt.getStudent().getEmail());
                     }
 
-                    submission.put("totalScore", attempt.getTotalScore());
                     submission.put("submittedAt", attempt.getEndTime());
                     submission.put("isCompleted", attempt.getIsCompleted());
 
-                    // Check if requires criteria grading
+                    // ✅ FIX 1: Use appropriate score field
                     boolean requiresCriteriaGrading = isManualGradingTestType(test.getTestType());
                     submission.put("requiresManualGrading", requiresCriteriaGrading);
 
-                    // Status based on criteria grading completion
-                    String status = "completed";
+                    // For Speaking/Writing: use overallScore, for others: use totalScore
+                    BigDecimal displayScore;
                     if (requiresCriteriaGrading) {
-                        boolean hasCriteriaGrading = checkHasCriteriaGrading(attempt.getId());
-                        status = hasCriteriaGrading ? "completed" : "pending_grading";
+                        displayScore = attempt.getOverallScore(); // Speaking/Writing score
+                    } else {
+                        displayScore = attempt.getTotalScore(); // Auto-graded score
                     }
+
+                    submission.put("totalScore", displayScore);
+                    submission.put("overallScore", attempt.getOverallScore()); // Also include this
+                    submission.put("gradingStatus", attempt.getGradingStatus());
+                    submission.put("gradedAt", attempt.getGradedAt());
+
+                    // ✅ FIX 2: Consistent status logic
+                    String status;
+                    if (requiresCriteriaGrading) {
+                        // For Speaking/Writing: check if actually graded with score
+                        boolean hasValidGrading = attempt.getGradingStatus() == GradingStatus.COMPLETED
+                                && attempt.getOverallScore() != null
+                                && attempt.getOverallScore().compareTo(BigDecimal.ZERO) > 0;
+
+                        status = hasValidGrading ? "completed" : "pending_grading";
+
+                        System.out.println("Attempt " + attempt.getId() + " - Criteria grading check:");
+                        System.out.println("  - GradingStatus: " + attempt.getGradingStatus());
+                        System.out.println("  - OverallScore: " + attempt.getOverallScore());
+                        System.out.println("  - Status: " + status);
+                    } else {
+                        // For auto-graded tests: completed if has total score
+                        status = (attempt.getTotalScore() != null && attempt.getIsCompleted())
+                                ? "completed" : "pending";
+                    }
+
                     submission.put("status", status);
 
                     submissions.add(submission);
@@ -120,7 +148,7 @@ public class GradingController {
                 }
             }
 
-            System.out.println("✅ Processed " + submissions.size() + " submissions");
+            System.out.println("✅ Processed " + submissions.size() + " submissions (FIXED)");
             return ResponseEntity.ok(submissions);
 
         } catch (Exception e) {
@@ -347,9 +375,11 @@ public class GradingController {
 
                         // If pronunciation is separate, average with fluency
                         if (criteria.getPronunciation() != null) {
-                            criteriaScore.setFluencyPronunciation(
-                                    averageScores(criteria.getFluency(), criteria.getPronunciation())
-                            );
+                            criteriaScore.setCoherenceCohesion(criteria.getPronunciation());
+                        }else {
+                            // Nếu không có pronunciation riêng, có thể lưu một tiêu chí khác
+                            // Ví dụ: Task Achievement cho Speaking (tương đương việc hoàn thành nhiệm vụ nói)
+                            criteriaScore.setCoherenceCohesion(criteria.getTask_achievement());
                         }
                     } else if ("WRITING".equalsIgnoreCase(request.getTestType())) {
                         // For writing: map to writing fields
@@ -388,16 +418,18 @@ public class GradingController {
             }
 
             // Update test attempt overall score
-            attempt.setTotalScore(request.getOverallScore());
+            attempt.setGradingStatus(GradingStatus.COMPLETED);
+            attempt.setGrader(currentUser);
+            attempt.setGradedAt(LocalDateTime.now());
+            attempt.setOverallScore(request.getOverallScore());
+            attempt.setOverallFeedback(request.getFeedback());
 
-            // Set individual skill scores based on test type
+// Set individual skill scores based on test type
             if ("SPEAKING".equalsIgnoreCase(request.getTestType())) {
                 attempt.setSpeakingScore(request.getOverallScore());
             } else if ("WRITING".equalsIgnoreCase(request.getTestType())) {
                 attempt.setWritingScore(request.getOverallScore());
             }
-
-            attempt.setIsCompleted(true);
             testAttemptRepository.save(attempt);
 
             System.out.println("✅ Criteria grading completed. Saved: " + savedCount + " responses");

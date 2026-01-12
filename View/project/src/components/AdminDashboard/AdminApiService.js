@@ -803,6 +803,15 @@ class AdminApiService {
 
         return csvContent;
     }
+
+    static async deactivateUser(id) {
+        return api.patch(`/users/${id}/deactivate`);
+    }
+
+// Soft-delete flashcard
+    static async deactivateFlashcard(id) {
+        return api.patch(`/flashcards/${id}/deactivate`);
+    }
 }
 
 export default AdminApiService;

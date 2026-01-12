@@ -12,6 +12,17 @@ export default function TestLibrary() {
     const [activeMenuId, setActiveMenuId] = useState(null);
     const navigate = useNavigate();
 
+    // ✅ FIXED: Implement getPartCount function properly
+    const getPartCount = (testType) => {
+        switch(testType) {
+            case 'READING': return 3;
+            case 'LISTENING': return 4;
+            case 'WRITING': return 2;
+            case 'SPEAKING': return 3;
+            default: return 3;
+        }
+    };
+
     useEffect(() => {
         const fetchTests = async () => {
             try {
@@ -34,32 +45,9 @@ export default function TestLibrary() {
                     if (data.length === 0) {
                         setError("Không có bài thi nào trong hệ thống.");
                     } else {
-                        // Enhanced data mapping với thông tin chi tiết hơn
+                        // ✅ CLEAN: Use actual data from API
                         const formattedTests = data.map(test => {
-                            // Tính số câu hỏi dựa trên test type
-                            const getQuestionCount = (testType) => {
-                                switch(testType) {
-                                    case 'READING': return Math.floor(20 + Math.random() * 20); // 20-40 câu
-                                    case 'LISTENING': return Math.floor(20 + Math.random() * 20); // 20-40 câu
-                                    case 'WRITING': return Math.floor(2 + Math.random() * 2); // 2-4 câu
-                                    case 'SPEAKING': return Math.floor(3 + Math.random() * 3); // 3-6 câu
-                                    default: return Math.floor(20 + Math.random() * 20);
-                                }
-                            };
-
-                            // Tính số phần thi dựa trên test type
-                            const getPartCount = (testType) => {
-                                switch(testType) {
-                                    case 'READING': return 3;
-                                    case 'LISTENING': return 4;
-                                    case 'WRITING': return 2;
-                                    case 'SPEAKING': return 3;
-                                    default: return 3;
-                                }
-                            };
-
-                            const questionCount = getQuestionCount(test.testType);
-                            const partCount = getPartCount(test.testType);
+                            console.log("✅ Processing test:", test.id, "Creator:", test.creatorName, "Questions:", test.questionCount);
 
                             return {
                                 id: test.id,
@@ -67,15 +55,17 @@ export default function TestLibrary() {
                                 testType: test.testType || 'READING',
                                 duration: test.durationMinutes || 60,
                                 passingScore: test.passingScore || 5.0,
-                                questionCount: questionCount,
-                                partCount: partCount,
+                                questionCount: test.questionCount || 0,
+                                partCount: getPartCount(test.testType),
                                 isPublished: test.isPublished || false,
                                 createdAt: test.createdAt,
-                                // Generate a unique test code
-                                testCode: `${test.testType?.substring(0,2) || 'TE'}${test.id}${Math.floor(100 + Math.random() * 900)}`
+                                // ✅ FIXED: Use correct field name from API
+                                authorName: test.creatorName || 'Unknown',
+                                creatorEmail: test.creatorEmail || '',
                             };
                         });
 
+                        console.log("Formatted tests:", formattedTests);
                         setTests(formattedTests);
                     }
                 } else {
@@ -131,16 +121,18 @@ export default function TestLibrary() {
                 try {
                     const data = await getAllTests();
                     if (data && Array.isArray(data)) {
+                        // ✅ FIXED: SỬ DỤNG CÙNG LOGIC MAPPING NHƯ TRÊN
                         const formattedTests = data.map(test => ({
                             id: test.id,
                             title: test.testName || 'Untitled Test',
                             testType: test.testType || 'READING',
                             duration: test.durationMinutes || 60,
                             passingScore: test.passingScore || 5.0,
-                            questionCount: Math.floor(20 + Math.random() * 20),
-                            partCount: test.testType === 'READING' ? 3 : 4,
+                            questionCount: test.questionCount || 0, // ← KHÔNG RANDOM
+                            partCount: getPartCount(test.testType), // ← SỬ DỤNG FUNCTION ĐÚNG
                             isPublished: test.isPublished || false,
-                            testCode: `${test.testType?.substring(0,2) || 'TE'}${test.id}${Math.floor(100 + Math.random() * 900)}`
+                            authorName: test.creatorName || 'Unknown', // ← KHÔNG RANDOM
+                            creatorEmail: test.creatorEmail || ''
                         }));
                         setTests(formattedTests);
                     } else {
@@ -305,9 +297,10 @@ export default function TestLibrary() {
                                     <span className="test-stat-label">phút</span>
                                 </div>
 
+                                {/* ✅ FIXED: Display author name instead of testCode */}
                                 <div className="test-stat">
                                     <span className="test-stat-icon">👤</span>
-                                    <span className="test-stat-value">{test.testCode}</span>
+                                    <span className="test-stat-value">{test.authorName}</span>
                                 </div>
                             </div>
 

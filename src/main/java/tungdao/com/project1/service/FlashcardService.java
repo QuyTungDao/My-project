@@ -1,5 +1,6 @@
 package tungdao.com.project1.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -309,5 +310,16 @@ public class FlashcardService {
         existingFlashcard.setDifficultyLevel(updatedFlashcard.getDifficultyLevel());
 
         return flashcardRepository.save(existingFlashcard);
+    }
+
+    @Transactional
+    public void deactivateFlashcardById(int id) {
+        FlashCard c = flashcardRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Flashcard not found"));
+        c.setIsActive(false);
+    }
+
+    public List<FlashCard> getAllActiveFlashcards() {
+        return flashcardRepository.findByIsActiveTrue();
     }
 }

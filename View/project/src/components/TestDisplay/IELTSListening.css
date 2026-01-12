@@ -338,6 +338,7 @@
     margin: 0;
     line-height: 1.5;
     flex: 1;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
 .ielts-question-type {
@@ -374,6 +375,7 @@
     white-space: pre-wrap;
     line-height: 1.5;
     margin: 0;
+    font-family: 'Georgia', 'Times New Roman', serif;
 }
 
 /* ===== ENHANCED ANSWER SECTION ===== */
@@ -440,6 +442,7 @@
 .ielts-context-content {
     font-size: 14px;
     line-height: 1.8;
+    font-family: 'Georgia', 'Times New Roman', serif;
     color: #374151;
 }
 
@@ -1039,6 +1042,7 @@
     font-size: 15px;
     line-height: 1.8;
     color: #374151;
+    font-family: 'Georgia', 'Times New Roman', serif;
 }
 
 .ielts-inline-question {
@@ -1114,5 +1118,358 @@
     line-height: 1.8;
     color: #374151;
     white-space: pre-wrap; /* ✅ THÊM DÒNG NÀY */
-    font-family: 'Courier New', monospace; /* ✅ THÊM DÒNG NÀY */
+    font-family: 'Georgia', 'Times New Roman', serif;
+}
+
+/* ===== EXISTING IELTS LISTENING TEST STYLES ===== */
+/* (Keep all existing styles from IELTSListening.css) */
+
+/* ===== TABLE COMPLETION INTEGRATION ===== */
+/* Override TableCompletionRenderer styles to match IELTS theme */
+
+.ielts-question-group .table-completion-renderer {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+}
+
+.ielts-question-group .table-completion-renderer .table-header {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 6px 6px 0 0;
+}
+
+.ielts-question-group .table-completion-renderer .table-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.ielts-question-group .table-completion-renderer .completion-stats {
+    font-size: 12px;
+}
+
+.ielts-question-group .table-completion-renderer .stats-badge {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 4px 8px;
+}
+
+/* Table styling to match IELTS theme */
+.ielts-question-group .completion-table {
+    border: 1px solid #e5e7eb;
+    border-radius: 0 0 6px 6px;
+}
+
+.ielts-question-group .table-header-cell {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    padding: 10px 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #374151;
+}
+
+.ielts-question-group .table-cell {
+    border: 1px solid #e5e7eb;
+    padding: 0;
+}
+
+.ielts-question-group .table-question-cell {
+    padding: 8px;
+    min-height: 50px;
+}
+
+.ielts-question-group .question-number-badge {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.ielts-question-group .table-question-input {
+    border: 2px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 14px;
+    background: white;
+    transition: all 0.2s ease;
+    outline: none;
+    text-align: center;
+    font-weight: 500;
+}
+
+.ielts-question-group .table-question-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    background: #fefefe;
+    transform: translateY(-1px);
+}
+
+.ielts-question-group .table-question-input:hover:not(:disabled) {
+    border-color: #64748b;
+    background: #fefefe;
+}
+
+.ielts-question-group .table-question-input:disabled {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #64748b;
+    cursor: not-allowed;
+}
+
+.ielts-question-group .table-data-cell {
+    padding: 12px 8px;
+    color: #374151;
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    min-height: 50px;
+}
+
+/* Progress indicator styling */
+.ielts-question-group .progress-indicator {
+    background: #f8fafc;
+    border-top: 1px solid #e5e7eb;
+    padding: 12px 16px;
+}
+
+.ielts-question-group .progress-bar {
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.ielts-question-group .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6 0%, #10b981 100%);
+    transition: width 0.3s ease;
+    border-radius: 3px;
+}
+
+.ielts-question-group .progress-text {
+    font-size: 11px;
+    color: #6b7280;
+    text-align: center;
+}
+
+/* Table instructions styling */
+.ielts-question-group .table-instructions {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    padding: 12px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.ielts-question-group .instructions-icon {
+    font-size: 14px;
+    margin-top: 1px;
+}
+
+.ielts-question-group .instructions-text {
+    flex: 1;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #1e40af;
+}
+
+/* Question summary for mobile */
+.ielts-question-group .question-summary {
+    border-top: 1px solid #e5e7eb;
+    background: #fafbfc;
+}
+
+.ielts-question-group .question-summary details {
+    padding: 12px 16px;
+}
+
+.ielts-question-group .question-summary summary {
+    font-size: 13px;
+    color: #6b7280;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.ielts-question-group .question-list {
+    margin-top: 12px;
+    display: grid;
+    gap: 8px;
+}
+
+.ielts-question-group .question-item {
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 10px;
+    background: white;
+}
+
+.ielts-question-group .question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.ielts-question-group .question-number {
+    font-weight: 600;
+    color: #374151;
+    font-size: 13px;
+}
+
+.ielts-question-group .mobile-question-input {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 13px;
+}
+
+/* Answer feedback for results mode */
+.ielts-question-group .answer-feedback {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+}
+
+.ielts-question-group .correct-mark {
+    color: #10b981;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.ielts-question-group .incorrect-mark {
+    color: #ef4444;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.ielts-question-group .correct-answer {
+    background: #1f2937;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 5px;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.ielts-question-group .correct-answer::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    right: 10px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 5px solid #1f2937;
+}
+
+/* Table completion wrapper */
+.table-completion-wrapper {
+    margin: 16px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Debug info styling */
+.table-completion-wrapper > div:first-child {
+    background: #e0f2fe;
+    color: #0c4a6e;
+    padding: 8px 12px;
+    font-size: 12px;
+    border-bottom: 1px solid #bae6fd;
+    font-family: monospace;
+}
+
+/* Responsive adjustments for table completion */
+@media (max-width: 768px) {
+    .ielts-question-group .table-completion-renderer {
+        margin: 0 -10px;
+        border-radius: 0;
+    }
+
+    .ielts-question-group .table-header {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+        padding: 10px 12px;
+    }
+
+    .ielts-question-group .completion-table {
+        font-size: 12px;
+    }
+
+    .ielts-question-group .table-question-cell {
+        flex-direction: column;
+        gap: 4px;
+        padding: 6px;
+    }
+
+    .ielts-question-group .question-number-badge {
+        width: 20px;
+        height: 20px;
+        font-size: 10px;
+    }
+
+    .ielts-question-group .table-question-input {
+        font-size: 12px;
+        padding: 6px 8px;
+        width: 100%;
+    }
+
+    .ielts-question-group .table-data-cell {
+        padding: 8px 4px;
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .table-completion-wrapper {
+        margin: 10px -10px;
+        border-radius: 0;
+    }
+
+    .ielts-question-group .table-header {
+        padding: 8px 10px;
+    }
+
+    .ielts-question-group .table-title {
+        font-size: 14px;
+    }
+
+    .ielts-question-group .completion-table {
+        font-size: 11px;
+    }
+
+    .ielts-question-group .table-instructions {
+        padding: 8px 10px;
+    }
+
+    .ielts-question-group .instructions-text {
+        font-size: 12px;
+    }
 }

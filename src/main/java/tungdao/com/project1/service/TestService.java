@@ -38,11 +38,12 @@ public class TestService {
 
     // ✅ EXISTING METHODS (keep as is)
     public List<Test> getAllPublishedTests() {
-        List<Test> tests = testRepository.findByIsPublishedTrue();
+        List<Test> tests = testRepository.findByIsPublishedTrue(); // Đã có JOIN FETCH
         System.out.println("Found " + tests.size() + " published tests");
         for (Test test : tests) {
             System.out.println("Test ID: " + test.getId() + ", Name: " + test.getTestName() +
-                    ", Is Published: " + test.getIsPublished());
+                    ", Creator: " + (test.getCreator() != null ? test.getCreator().getFullName() : "Unknown") +
+                    ", Questions: " + (test.getQuestions() != null ? test.getQuestions().size() : 0));
         }
         return tests;
     }

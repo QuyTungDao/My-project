@@ -24,6 +24,8 @@ public interface FlashcardRepository extends JpaRepository<FlashCard, Integer> {
 
     List<FlashCard> findBySetNameAndIsActiveTrue(String setName);
 
+    List<FlashCard> findByIsActiveTrue();
+
     List<FlashCard> findByIsPublicTrueAndIsActiveTrue();
 
     List<FlashCard> findByCategoryAndDifficultyLevelAndIsActiveTrue(

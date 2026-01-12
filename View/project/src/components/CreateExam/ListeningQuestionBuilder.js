@@ -3,7 +3,7 @@
 // =====================================
 
 import React, { useState, useEffect, useRef } from 'react';
-import SimpleTableEditor from './TableEditor'; // ✅ Import new simple component
+import TableEditor from './TableEditor'; // ✅ Import new simple component
 import './ListeningQuestionBuilder.css';
 
 // ✅ UPDATED Question Types với simple table editor
@@ -57,36 +57,6 @@ Emergency contact: ___7___
 Special requirements: ___8___
 
 💡 TIP: Use ___1___, ___2___, etc. to mark question positions`
-    },
-    {
-        id: 'table_completion',
-        name: 'Table Completion',
-        description: 'Hoàn thành bảng - Simple Visual Editor',
-        defaultCount: 5,
-        type: 'FILL_IN_THE_BLANK',
-        subType: 'TABLE_COMPLETION',
-        instructions: 'Complete the table below. Write NO MORE THAN THREE WORDS AND/OR A NUMBER for each answer.',
-        requiresContext: true,
-        supportsSimpleEditor: true, // ✅ Enable Simple Table Editor
-        contextHint: `📊 Simple Table Editor Features:
-
-🎯 One-Click Question Creation:
-- Click any cell to make it a question
-- Auto-numbering and validation
-- Visual feedback immediately
-- No markdown or JSON required
-
-✨ Intuitive Interface:
-- Drag to resize (coming soon)
-- Add/remove rows & columns easily
-- Preview mode for student view
-- Auto-save every second
-
-💡 Much easier than before:
-- No complex JSON editing
-- No markdown syntax needed
-- Just click and create!
-- Perfect for teachers who want simplicity`
     },
     {
         id: 'plan_map_completion',
@@ -148,31 +118,6 @@ ___4___
         instructions: 'Answer the questions below. Write NO MORE THAN THREE WORDS for each answer.',
         requiresContext: false,
         supportsSimpleEditor: false
-    },
-    {
-        id: 'flexible_context',
-        name: 'Flexible Context',
-        description: 'Tự tạo context từ bất kỳ văn bản nào',
-        defaultCount: 0,
-        type: 'FILL_IN_THE_BLANK',
-        subType: 'FLEXIBLE_CONTEXT',
-        instructions: 'Complete the notes below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.',
-        requiresContext: true,
-        supportsSimpleEditor: false,
-        contextHint: `🎯 Paste any IELTS listening context here...
-
-For example:
-Notes on Adult Education Classes
-
-Number of classes per week: 7
-Tuesday:
-___1___ 6-7.30 pm
-—Limited space: no more than ___2___ participants
-
-💡 TIP: 
-• Use ___1___, ___2___ to mark questions
-• Or select text and click "Set as Question"
-• Use Auto Detect for **number** patterns`
     }
 ];
 
@@ -188,26 +133,7 @@ const ListeningQuestionBuilder = ({
     const [selectedText, setSelectedText] = useState({});
     const [selectionRange, setSelectionRange] = useState({});
     const textareaRefs = useRef({});
-
-    // ✅ Debug effect to log context loading
-    useEffect(() => {
-        console.log('=== LISTENING QUESTION BUILDER DEBUG (SIMPLE EDITOR) ===');
-        console.log('Question sets count:', questionSets.length);
-        questionSets.forEach((set, idx) => {
-            console.log(`Set ${idx + 1}:`, {
-                id: set.id,
-                name: set.name,
-                type: set.type,
-                subType: set.subType,
-                hasContext: !!(set.context),
-                contextLength: set.context?.length || 0,
-                contextPreview: set.context ? set.context.substring(0, 100) + '...' : 'empty',
-                requiresContext: set.requiresContext,
-                questionsCount: set.questions?.length || 0,
-                supportsSimpleEditor: set.supportsSimpleEditor
-            });
-        });
-    }, [questionSets]);
+    const [editingQuestion, setEditingQuestion] = useState(null); // Track which question is being edited
 
     const getNextQuestionNumber = () => {
         let maxNumber = 0;
@@ -380,7 +306,6 @@ const ListeningQuestionBuilder = ({
         let defaultContext = '';
 
         if (setType.requiresContext) {
-            // ✅ Để trống context, dùng contextHint làm placeholder
             defaultContext = '';
             questionsInSet = [];
         } else {
@@ -401,7 +326,7 @@ const ListeningQuestionBuilder = ({
             id: newSetId,
             name: setType.name,
             type: setType.type,
-            subType: setType.subType,
+            subType: setType.subType || setType.type, // ✅ ENSURE subType is set
             questions: questionsInSet,
             audioId: null,
             instructions: setType.instructions,
@@ -409,8 +334,14 @@ const ListeningQuestionBuilder = ({
             contextHint: setType.contextHint || '',
             startQuestionNumber: getNextQuestionNumber(),
             requiresContext: setType.requiresContext || false,
-            supportsSimpleEditor: setType.supportsSimpleEditor || false // ✅ Track Simple Editor support
+            supportsSimpleEditor: setType.supportsSimpleEditor || false
         };
+
+        console.log('✅ Created new question set with subType:', {
+            name: setType.name,
+            type: setType.type,
+            subType: setType.subType
+        });
 
         setQuestionSets([...questionSets, newSet]);
         setExpandedQuestionSet(newSetId);
@@ -658,19 +589,23 @@ const ListeningQuestionBuilder = ({
             return;
         }
 
-        console.log('=== SYNC QUESTIONS WITH CONTEXT TO FORM (SIMPLE EDITOR) ===');
-        console.log('Input sets:', sets.length);
+        console.log('=== SYNC QUESTIONS WITH SUBTYPE PRESERVATION ===');
 
         const flatQuestions = sets.flatMap((set, setIndex) => {
             console.log(`\n--- Processing Set ${setIndex + 1}: ${set.name} ---`);
             console.log('Set type:', set.type);
-            console.log('Set subType:', set.subType);
-            console.log('Set context length:', set.context?.length || 0);
-            console.log('Set context preview:', set.context?.substring(0, 100) || 'empty');
-            console.log('Set instructions:', set.instructions || 'empty');
-            console.log('Set questions count:', set.questions.length);
+            console.log('Set subType:', set.subType); // ✅ Log subType
 
             return set.questions.map((q, qIndex) => {
+                // ✅ ENCODE subType trong instructions để preserve
+                const originalInstructions = set.instructions || '';
+                const subTypeMarker = `[SUBTYPE:${set.subType || set.type}]`;
+
+                // Chỉ thêm marker nếu chưa có
+                const instructionsWithSubType = originalInstructions.includes('[SUBTYPE:')
+                    ? originalInstructions
+                    : `${subTypeMarker} ${originalInstructions}`.trim();
+
                 const result = {
                     question_id: q.id,
                     question_text: q.questionText || '',
@@ -679,53 +614,28 @@ const ListeningQuestionBuilder = ({
                     order_in_test: q.orderInTest || q.questionNumber || (setIndex * 10 + qIndex + 1),
                     explanation: q.explanation || '',
                     alternative_answers: q.alternativeAnswers || '',
-                    question_set_instructions: set.instructions || '',
 
-                    // ✅ CRITICAL FIX: Always include context from SET level
-                    context: set.context || '', // Use set.context, not q.context
+                    // ✅ CRITICAL: Encode subType trong instructions
+                    question_set_instructions: instructionsWithSubType,
 
-                    // Audio relationships
+                    context: set.context || q.context || '',
                     audio_id: set.audioId ? parseInt(set.audioId, 10) : null,
-                    passage_id: null, // Listening không có passage
-
-                    // Options for MCQ
+                    passage_id: set.passageId ? parseInt(set.passageId, 10) : null,
                     options: set.type === 'MCQ' ? (Array.isArray(q.options) ? q.options : ['', '', '', '']) : (q.options || [])
                 };
 
-                console.log(`  Question ${qIndex + 1}:`, {
-                    id: result.question_id,
-                    type: result.question_type,
-                    hasContext: !!(result.context && result.context.trim()),
-                    contextLength: result.context?.length || 0,
-                    contextSource: 'set.context', // ✅ Always from set
-                    audioId: result.audio_id
+                console.log(`Question ${qIndex + 1} subType encoded:`, {
+                    originalType: set.type,
+                    subType: set.subType,
+                    encodedInstructions: instructionsWithSubType.substring(0, 50) + '...'
                 });
 
                 return result;
             });
         });
 
-        console.log('\n=== FINAL QUESTIONS TO SEND TO FORM (SIMPLE EDITOR) ===');
-        console.log('Total questions:', flatQuestions.length);
-
-        // ✅ VALIDATION: Check context in final questions
-        const questionsWithContext = flatQuestions.filter(q => q.context && q.context.trim());
-        const questionsWithoutContext = flatQuestions.filter(q => !q.context || !q.context.trim());
-
-        console.log('Questions WITH context:', questionsWithContext.length);
-        console.log('Questions WITHOUT context:', questionsWithoutContext.length);
-
-        if (questionsWithContext.length > 0) {
-            console.log('Sample question with context:', {
-                id: questionsWithContext[0].question_id,
-                contextLength: questionsWithContext[0].context.length,
-                contextPreview: questionsWithContext[0].context.substring(0, 100) + '...'
-            });
-        }
-
-        // ✅ SET TO FORM
         setValue('questions', flatQuestions);
-        console.log('✅ Context synced to form successfully (Simple Editor)');
+        console.log('✅ SubType preservation completed');
     };
 
     const updateQuestionSetInstructions = (setId, instructions) => {
@@ -762,12 +672,58 @@ const ListeningQuestionBuilder = ({
         setQuestionSets(updatedSets);
     };
 
+    const extractSubTypeFromInstructions = (instructions) => {
+        if (!instructions) return null;
+
+        const match = instructions.match(/\[SUBTYPE:([^\]]+)\]/);
+        return match ? match[1] : null;
+    };
+
+// ✅ Enhanced grouping logic with subType detection
+    const enhancedGroupKey = (q, currentPassages, currentAudio) => {
+        // Extract subType from instructions
+        const extractedSubType = extractSubTypeFromInstructions(q.question_set_instructions);
+
+        // UI index mapping (existing logic)
+        let uiPassageId = 'none';
+        let uiAudioId = 'none';
+
+        if (q.passage_id) {
+            const passageIndex = currentPassages.findIndex(p => p.id === q.passage_id);
+            uiPassageId = passageIndex !== -1 ? (passageIndex + 1).toString() : 'none';
+        }
+
+        if (q.audio_id) {
+            const audioIndex = currentAudio.findIndex(a => a.id === q.audio_id);
+            uiAudioId = audioIndex !== -1 ? (audioIndex + 1).toString() : 'none';
+        }
+
+        // ✅ INCLUDE subType trong grouping key
+        const cleanInstructions = (q.question_set_instructions || '').replace(/\[SUBTYPE:[^\]]+\]\s*/, '');
+
+        return [
+            q.question_type,
+            extractedSubType || q.question_type, // ✅ Use extracted subType
+            uiPassageId,
+            uiAudioId,
+            cleanInstructions,
+            q.context || ''
+        ].join('_');
+    };
+
     const removeQuestionFromSet = (setId, questionIndex) => {
         const updatedSets = questionSets.map(set => {
             if (set.id === setId) {
                 const updatedQuestions = [...set.questions];
                 updatedQuestions.splice(questionIndex, 1);
-                return { ...set, questions: updatedQuestions };
+
+                // ✅ Reorder questionNumber after removal
+                const reorderedQuestions = updatedQuestions.map((q, idx) => ({
+                    ...q,
+                    questionNumber: idx + 1
+                }));
+
+                return { ...set, questions: reorderedQuestions };
             }
             return set;
         });
@@ -938,7 +894,7 @@ const ListeningQuestionBuilder = ({
                 <div className="context-input-wrapper">
                     {/* ✅ Simple Table Editor for Table Completion */}
                     {set.supportsSimpleEditor ? (
-                        <SimpleTableEditor
+                        <TableEditor
                             context={set.context || ''}
                             onContextChange={(newContext) => updateQuestionSetContext(set.id, newContext)}
                             questionCounter={getNextQuestionNumber()}
@@ -988,34 +944,18 @@ const ListeningQuestionBuilder = ({
 
     const renderQuestionTextDisplay = (set, question, qIdx) => {
         return (
-            <div className="question-preview-modern">
-                <div className="preview-header">
-                    <h6 className="preview-title">
-                        <span className="preview-icon">❓</span>
-                        Question Preview
-                    </h6>
-                    <button
-                        type="button"
-                        className="edit-btn-modern"
-                        onClick={() => {
-                            const newText = prompt('Edit question text:', question.questionText);
-                            if (newText !== null) {
-                                updateQuestion(set.id, qIdx, 'questionText', newText);
-                            }
-                        }}
-                        title="Edit question text"
-                    >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                        Edit
-                    </button>
-                </div>
-
-                <div className="preview-content">
-                    {question.questionText || `Question ${question.questionNumber} - Auto-generated from context`}
-                </div>
+            <div className="question-text-input-section">
+                <label className="question-text-label">
+                    <span className="label-icon">❓</span>
+                    Question Text
+                </label>
+                <textarea
+                    className="question-text-input"
+                    placeholder={`Enter question ${qIdx + 1} text here... (or it will be auto-generated from context)`}
+                    value={question.questionText || ''}
+                    onChange={(e) => updateQuestion(set.id, qIdx, 'questionText', e.target.value)}
+                    rows={2}
+                />
             </div>
         );
     };
@@ -1037,7 +977,7 @@ const ListeningQuestionBuilder = ({
                     <div key={question.id} className={`question-card-modern ${getQuestionStatus(question) === '✅ Complete' ? 'completed' : ''}`}>
                         <div className="question-card-header-modern">
                             <div className="question-badge-modern">
-                                <span className="badge-number">Q{question.questionNumber}</span>
+                                <span className="badge-number">Q{qIdx + 1}</span>
                                 <span className={`badge-status ${getStatusClass(question)}`}>
                                     {getQuestionStatus(question)}
                                 </span>
@@ -1083,6 +1023,21 @@ const ListeningQuestionBuilder = ({
                         </div>
                     </div>
                 ))}
+                {!set.supportsSimpleEditor && (
+                    <button
+                        className="btn-add-question-large"
+                        onClick={() => addQuestionToSet(set.id)}
+                    >
+                        + Add Another Question
+                    </button>
+                )}
+
+                {/* CHO TABLE COMPLETION */}
+                {set.supportsSimpleEditor && (
+                    <div className="table-completion-help">
+                        💡 Click any cell in the table above to create questions
+                    </div>
+                )}
             </div>
         );
     };
@@ -1292,7 +1247,6 @@ const ListeningQuestionBuilder = ({
                                 <span className="question-count">
                                     {type.subType === 'FLEXIBLE_CONTEXT' ? 'Flexible' : `${type.defaultCount} questions`}
                                 </span>
-                                {/* ✅ Simple Editor Badge */}
                                 {type.supportsSimpleEditor && (
                                     <span className="simple-editor-badge">✨ Simple Editor</span>
                                 )}
@@ -1399,61 +1353,6 @@ const ListeningQuestionBuilder = ({
                     <p>Choose a question type above to start building your listening test.</p>
                 </div>
             )}
-
-            {/* Enhanced Help Section */}
-            <div className="help-section">
-                <details>
-                    <summary>💡 Enhanced Guide: Simple Table Editor vs Traditional Methods</summary>
-                    <div className="help-content">
-                        <h4>✨ Simple Table Editor Benefits:</h4>
-                        <div className="help-comparison">
-                            <div className="comparison-column">
-                                <h5>📊 Simple Editor (NEW)</h5>
-                                <ul>
-                                    <li>✅ <strong>One-click questions</strong> - just click any cell</li>
-                                    <li>✅ <strong>Visual editing</strong> - like Excel/Google Sheets</li>
-                                    <li>✅ <strong>Auto-numbering</strong> - no manual counting</li>
-                                    <li>✅ <strong>Live preview</strong> - see student view instantly</li>
-                                    <li>✅ <strong>Auto-save</strong> - never lose your work</li>
-                                    <li>✅ <strong>No syntax</strong> - no markdown or JSON needed</li>
-                                </ul>
-                            </div>
-                            <div className="comparison-column">
-                                <h5>📝 Old Methods</h5>
-                                <ul>
-                                    <li>❌ Manual ___1___ typing</li>
-                                    <li>❌ Markdown syntax errors</li>
-                                    <li>❌ JSON complexity</li>
-                                    <li>❌ No visual feedback</li>
-                                    <li>❌ Easy to make mistakes</li>
-                                    <li>❌ Technical knowledge required</li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <h4>🎯 How to use Simple Table Editor:</h4>
-                        <ol>
-                            <li><strong>Choose "Table Completion"</strong> from question types</li>
-                            <li><strong>Edit table data</strong> - type in cells like Excel</li>
-                            <li><strong>Click any cell</strong> to convert it to a question</li>
-                            <li><strong>Orange cells</strong> are questions with auto-numbers</li>
-                            <li><strong>Fill in correct answers</strong> in the right panel</li>
-                            <li><strong>Click Preview</strong> to see student view</li>
-                            <li><strong>Auto-saves</strong> every second - no manual save needed</li>
-                        </ol>
-
-                        <h4>📱 Much Better for Teachers:</h4>
-                        <ul>
-                            <li>No technical skills required</li>
-                            <li>Intuitive like Google Sheets</li>
-                            <li>Instant visual feedback</li>
-                            <li>Perfect table rendering for students</li>
-                            <li>Mobile-friendly editing</li>
-                            <li>Zero syntax errors possible</li>
-                        </ul>
-                    </div>
-                </details>
-            </div>
         </div>
     );
 };

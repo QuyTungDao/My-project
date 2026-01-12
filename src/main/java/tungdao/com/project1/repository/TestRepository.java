@@ -15,7 +15,7 @@ import java.util.List;
 public interface TestRepository extends JpaRepository<Test, Integer> {
 
     // ✅ EXISTING SAFE METHODS (keep as is)
-    @Query("SELECT t FROM Test t WHERE t.isPublished = true")
+    @Query("SELECT t FROM Test t JOIN FETCH t.creator WHERE t.isPublished = true")
     List<Test> findByIsPublishedTrue();
 
     List<Test> findByTestNameContainingAndIsPublishedTrue(String query);

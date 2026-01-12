@@ -83,7 +83,6 @@ public class TestAttempt {
 
     @OneToMany(mappedBy = "attempt", cascade = CascadeType.ALL)
     @JsonManagedReference("attempt-reports")
-    private Set<PerformanceReport> reports = new HashSet<>();
 
     @PrePersist
     protected void onCreate() {
@@ -92,9 +91,6 @@ public class TestAttempt {
         isCompleted = isCompleted == null ? Boolean.FALSE : isCompleted;
         gradingStatus = gradingStatus == null ? GradingStatus.PENDING : gradingStatus;
     }
-
-    // ✅ GRADING STATUS ENUM - Remove inner enum, use external
-    // (GradingStatus enum should be in a separate file)
 
     // ✅ HELPER METHODS
     public boolean isGradedByTeacher() {

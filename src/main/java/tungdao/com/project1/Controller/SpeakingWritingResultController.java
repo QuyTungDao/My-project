@@ -11,6 +11,7 @@ import tungdao.com.project1.entity.*;
 import tungdao.com.project1.login_register.UserDetailsImpl;
 import tungdao.com.project1.repository.*;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 @RestController
@@ -117,8 +118,14 @@ public class SpeakingWritingResultController {
         result.setSubmittedAt(attempt.getEndTime());
         result.setIsCompleted(attempt.getIsCompleted());
 
-        // Overall score from attempt
-        result.setOverallScore(attempt.getTotalScore());
+        BigDecimal displayScore = null;
+        if (attempt.getOverallScore() != null) {
+            displayScore = attempt.getOverallScore(); // Điểm từ criteria grading
+        } else if (attempt.getTotalScore() != null) {
+            displayScore = attempt.getTotalScore(); // Fallback to total score
+        }
+
+        result.setOverallScore(displayScore);
 
         // Get all responses for this attempt
         List<StudentResponse> responses = studentResponseRepository.findByAttemptIdOrderByQuestionOrder(attempt.getId());
@@ -142,7 +149,7 @@ public class SpeakingWritingResultController {
                     criteriaScores.put("fluency", score.getFluencyPronunciation());
                     criteriaScores.put("lexical", score.getLexicalResource());
                     criteriaScores.put("grammar", score.getGrammaticalAccuracy());
-                    criteriaScores.put("pronunciation", score.getFluencyPronunciation()); // Same as fluency
+                    criteriaScores.put("pronunciation", score.getCoherenceCohesion()); // Same as fluency
                 } else if ("WRITING".equals(result.getTestType())) {
                     criteriaScores.put("task_achievement", score.getTaskAchievement());
                     criteriaScores.put("coherence", score.getCoherenceCohesion());

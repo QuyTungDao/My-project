@@ -1,8 +1,10 @@
 package tungdao.com.project1.Controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import tungdao.com.project1.entity.User;
@@ -284,4 +286,17 @@ public class UserController {
         public String getProfilePicture() { return profilePicture; }
         public void setProfilePicture(String profilePicture) { this.profilePicture = profilePicture; }
     }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteUser(@PathVariable int id) {
+        try {
+            userService.deleteUserById(id);
+            return ResponseEntity.ok().body("User deleted successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error deleting user: " + e.getMessage());
+        }
+    }
+
 }

@@ -31,6 +31,8 @@ public class StudentResponseDTO {
     private LocalDateTime feedbackGivenAt;
     private Boolean requiresManualGrading;
 
+    private String audioBase64;
+
     // Constructors
     public StudentResponseDTO() {
     }

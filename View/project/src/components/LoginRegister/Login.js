@@ -153,55 +153,55 @@ export default function Login() {
                     Chưa có tài khoản? <Link to="/register" className="login-link">Đăng ký ngay</Link>
                 </p>
 
-                {/* Debug Section */}
-                <div className="login-debug-section">
-                    <button
-                        onClick={handleClearTokens}
-                        className="login-debug-button login-clear-button"
-                        type="button"
-                    >
-                        🗑️ Xóa token và đăng nhập lại
-                    </button>
+                {/*/!* Debug Section *!/*/}
+                {/*<div className="login-debug-section">*/}
+                {/*    <button*/}
+                {/*        onClick={handleClearTokens}*/}
+                {/*        className="login-debug-button login-clear-button"*/}
+                {/*        type="button"*/}
+                {/*    >*/}
+                {/*        🗑️ Xóa token và đăng nhập lại*/}
+                {/*    </button>*/}
 
-                    <button
-                        onClick={() => setShowToken(!showToken)}
-                        className="login-debug-button login-toggle-button"
-                        type="button"
-                    >
-                        {showToken ? '🙈 Ẩn thông tin token' : '👁️ Hiển thị thông tin token'}
-                    </button>
+                {/*    <button*/}
+                {/*        onClick={() => setShowToken(!showToken)}*/}
+                {/*        className="login-debug-button login-toggle-button"*/}
+                {/*        type="button"*/}
+                {/*    >*/}
+                {/*        {showToken ? '🙈 Ẩn thông tin token' : '👁️ Hiển thị thông tin token'}*/}
+                {/*    </button>*/}
 
-                    <button
-                        onClick={handleCheckPassword}
-                        className="login-debug-button login-check-button"
-                        type="button"
-                    >
-                        🔍 Kiểm tra mật khẩu (Debug)
-                    </button>
+                {/*    /!*<button*!/*/}
+                {/*    /!*    onClick={handleCheckPassword}*!/*/}
+                {/*    /!*    className="login-debug-button login-check-button"*!/*/}
+                {/*    /!*    type="button"*!/*/}
+                {/*    /!*>*!/*/}
+                {/*    /!*    🔍 Kiểm tra mật khẩu (Debug)*!/*/}
+                {/*    /!*</button>*!/*/}
 
-                    {showToken && token && (
-                        <div className="login-token-display">
-                            <div className="login-token-label">Current Token:</div>
-                            <div className="login-token-value">{token}</div>
-                        </div>
-                    )}
+                {/*    /!*{showToken && token && (*!/*/}
+                {/*    /!*    <div className="login-token-display">*!/*/}
+                {/*    /!*        <div className="login-token-label">Current Token:</div>*!/*/}
+                {/*    /!*        <div className="login-token-value">{token}</div>*!/*/}
+                {/*    /!*    </div>*!/*/}
+                {/*    /!*)}*!/*/}
 
-                    {showToken && (
-                        <div className="login-token-display">
-                            <div className="login-token-label">Token từ localStorage:</div>
-                            <div className="login-token-value">
-                                {localStorage.getItem('token') || "Không có token"}
-                            </div>
-                        </div>
-                    )}
+                {/*    /!*{showToken && (*!/*/}
+                {/*    /!*    <div className="login-token-display">*!/*/}
+                {/*    /!*        <div className="login-token-label">Token từ localStorage:</div>*!/*/}
+                {/*    /!*        <div className="login-token-value">*!/*/}
+                {/*    /!*            {localStorage.getItem('token') || "Không có token"}*!/*/}
+                {/*    /!*        </div>*!/*/}
+                {/*    /!*    </div>*!/*/}
+                {/*    /!*)}*!/*/}
 
-                    {debugMessage && (
-                        <div className="login-debug-message">
-                            <div className="login-debug-label">Thông tin debug:</div>
-                            <div className="login-debug-text">{debugMessage}</div>
-                        </div>
-                    )}
-                </div>
+                {/*    /!*{debugMessage && (*!/*/}
+                {/*    /!*    <div className="login-debug-message">*!/*/}
+                {/*    /!*        <div className="login-debug-label">Thông tin debug:</div>*!/*/}
+                {/*    /!*        <div className="login-debug-text">{debugMessage}</div>*!/*/}
+                {/*    /!*    </div>*!/*/}
+                {/*    /!*)}*!/*/}
+                {/*</div>*/}
             </div>
         </div>
     );

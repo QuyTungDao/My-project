@@ -110,6 +110,45 @@ export default function CreateExamPage() {
         }
     };
 
+    const extractSubTypeFromInstructions = (instructions) => {
+        if (!instructions) return null;
+
+        const match = instructions.match(/\[SUBTYPE:([^\]]+)\]/);
+        return match ? match[1] : null;
+    };
+
+// ✅ Enhanced grouping logic with subType detection
+    const enhancedGroupKey = (q, currentPassages, currentAudio) => {
+        // Extract subType from instructions
+        const extractedSubType = extractSubTypeFromInstructions(q.question_set_instructions);
+
+        // UI index mapping (existing logic)
+        let uiPassageId = 'none';
+        let uiAudioId = 'none';
+
+        if (q.passage_id) {
+            const passageIndex = currentPassages.findIndex(p => p.id === q.passage_id);
+            uiPassageId = passageIndex !== -1 ? (passageIndex + 1).toString() : 'none';
+        }
+
+        if (q.audio_id) {
+            const audioIndex = currentAudio.findIndex(a => a.id === q.audio_id);
+            uiAudioId = audioIndex !== -1 ? (audioIndex + 1).toString() : 'none';
+        }
+
+        // ✅ INCLUDE subType trong grouping key
+        const cleanInstructions = (q.question_set_instructions || '').replace(/\[SUBTYPE:[^\]]+\]\s*/, '');
+
+        return [
+            q.question_type,
+            extractedSubType || q.question_type, // ✅ Use extracted subType
+            uiPassageId,
+            uiAudioId,
+            cleanInstructions,
+            q.context || ''
+        ].join('_');
+    };
+
     // Khi thay đổi loại bài thi, cập nhật các fields phù hợp
     useEffect(() => {
         if (isEditMode) {
@@ -127,42 +166,23 @@ export default function CreateExamPage() {
                     // Sau reset(testData);
                     // Thay thế phần xử lý sau reset(testData) trong useEffect của CreateExamPage.js
                     if (testData && testData.questions) {
-                        console.log('=== PROCESSING LOADED TEST DATA ===');
+                        console.log('=== PROCESSING LOADED TEST DATA WITH SUBTYPE DETECTION ===');
 
-                        // Debug: Log tất cả passages và questions
                         const currentPassages = testData.reading_passages || [];
                         const currentAudio = testData.listening_audio || [];
 
-                        console.log('Available passages:', currentPassages.map(p => ({ id: p.id, title: p.title })));
-                        console.log('Available audio:', currentAudio.map(a => ({ id: a.id, title: a.title })));
-
-                        // GROUP lại các câu hỏi thành questionSets với UI index mapping
-                        const groupKey = q => {
-                            // ✅ FIX: Chuyển đổi database ID sang UI index trước khi group
-                            let uiPassageId = 'none';
-                            let uiAudioId = 'none';
-
-                            if (q.passage_id) {
-                                const passageIndex = currentPassages.findIndex(p => p.id === q.passage_id);
-                                uiPassageId = passageIndex !== -1 ? (passageIndex + 1).toString() : 'none';
-                                console.log(`Question mapping: DB passage ID ${q.passage_id} -> UI index ${uiPassageId}`);
-                            }
-
-                            if (q.audio_id) {
-                                const audioIndex = currentAudio.findIndex(a => a.id === q.audio_id);
-                                uiAudioId = audioIndex !== -1 ? (audioIndex + 1).toString() : 'none';
-                                console.log(`Question mapping: DB audio ID ${q.audio_id} -> UI index ${uiAudioId}`);
-                            }
-
-                            // ✅ THÊM: Include context trong groupKey
-                            return [q.question_type, uiPassageId, uiAudioId, q.question_set_instructions || '', q.context || ''].join('_');
-                        };
-
+                        // Enhanced grouping with subType preservation
                         const groupMap = {};
+
                         testData.questions.forEach(q => {
-                            const key = groupKey(q);
+                            const key = enhancedGroupKey(q, currentPassages, currentAudio);
+
                             if (!groupMap[key]) {
-                                // ✅ FIX: Sử dụng UI index thay vì database ID
+                                // ✅ Extract and preserve subType
+                                const extractedSubType = extractSubTypeFromInstructions(q.question_set_instructions);
+                                const cleanInstructions = (q.question_set_instructions || '').replace(/\[SUBTYPE:[^\]]+\]\s*/, '');
+
+                                // UI index mapping
                                 let uiPassageId = null;
                                 let uiAudioId = null;
 
@@ -179,20 +199,18 @@ export default function CreateExamPage() {
                                 groupMap[key] = {
                                     id: 'set_' + Math.random(),
                                     type: q.question_type,
-                                    passageId: uiPassageId, // ✅ UI index, không phải DB ID
-                                    audioId: uiAudioId,     // ✅ UI index, không phải DB ID
-                                    instructions: q.question_set_instructions,
-                                    // ✅ THÊM: Context loading
+                                    subType: extractedSubType || q.question_type, // ✅ Preserve original subType
+                                    passageId: uiPassageId,
+                                    audioId: uiAudioId,
+                                    instructions: cleanInstructions,
                                     context: q.context || '',
                                     questions: []
                                 };
 
-                                console.log(`Created group for key ${key}:`, {
+                                console.log(`✅ Created group with preserved subType:`, {
                                     type: q.question_type,
-                                    passageId: uiPassageId,
-                                    audioId: uiAudioId,
-                                    instructions: q.question_set_instructions,
-                                    context: q.context ? q.context.substring(0, 50) + '...' : 'empty'
+                                    subType: extractedSubType,
+                                    key: key.substring(0, 50) + '...'
                                 });
                             }
 
@@ -205,82 +223,80 @@ export default function CreateExamPage() {
                                 explanation: q.explanation,
                                 orderInTest: q.order_in_test,
                                 alternativeAnswers: q.alternative_answers || '',
-                                // ✅ THÊM: Context cho từng question
                                 context: q.context || ''
                             });
                         });
 
-                        // ✅ Tạo tên cho question sets
+                        // ✅ Generate names based on preserved subType
                         const finalQuestionSets = Object.entries(groupMap).map(([key, group], setIndex) => {
                             let setName;
                             const typeCount = Object.values(groupMap)
-                                .filter(g => g.type === group.type).length;
+                                .filter(g => g.subType === group.subType).length;
 
                             const suffix = typeCount > 1 ? ` ${setIndex + 1}` : '';
 
-                            // ✅ LISTENING specific handling with context detection
-                            if (group.type === 'FILL_IN_THE_BLANK' && group.context) {
-                                // Detect specific listening types from context patterns
-                                if (group.context.includes('Notes') || group.context.includes('___')) {
+                            // ✅ Use preserved subType for naming
+                            switch (group.subType) {
+                                case 'NOTE_COMPLETION':
                                     setName = `Note Completion${suffix}`;
-                                } else if (group.context.includes('Form') || group.context.includes('FORM')) {
+                                    break;
+                                case 'FORM_FILLING':
                                     setName = `Form Filling${suffix}`;
-                                } else if (group.context.includes('Table') || group.context.includes('|')) {
+                                    break;
+                                case 'TABLE_COMPLETION':
                                     setName = `Table Completion${suffix}`;
-                                } else if (group.context.includes('Map') || group.context.includes('Plan')) {
+                                    break;
+                                case 'PLAN_MAP_COMPLETION':
                                     setName = `Plan/Map Completion${suffix}`;
-                                } else {
-                                    setName = `Flexible Context${suffix}`;
-                                }
-                            } else {
-                                switch (group.type) {
-                                    case 'MCQ':
-                                        setName = `Multiple Choice Questions${suffix}`;
-                                        break;
-                                    case 'MATCHING':
-                                        setName = `Matching Headings${suffix}`;
-                                        break;
-                                    case 'FILL_IN_THE_BLANK':
-                                        setName = `Fill in the Blanks${suffix}`;
-                                        break;
-                                    case 'TRUE_FALSE_NOT_GIVEN':
-                                        setName = `True/False/Not Given${suffix}`;
-                                        break;
-                                    case 'SHORT_ANSWER':
-                                        setName = `Short Answer Questions${suffix}`;
-                                        break;
-                                    default:
+                                    break;
+                                case 'MCQ':
+                                    setName = `Multiple Choice Questions${suffix}`;
+                                    break;
+                                case 'MATCHING':
+                                    setName = `Matching Headings${suffix}`;
+                                    break;
+                                case 'SHORT_ANSWER':
+                                    setName = `Short Answer Questions${suffix}`;
+                                    break;
+                                default:
+                                    // Fallback với context detection (cho backward compatibility)
+                                    if (group.type === 'FILL_IN_THE_BLANK' && group.context) {
+                                        if (group.context.includes('Notes') || group.context.includes('notes')) {
+                                            setName = `Note Completion${suffix}`;
+                                            group.subType = 'NOTE_COMPLETION'; // Update subType
+                                        } else if (group.context.includes('Form') || group.context.includes('FORM')) {
+                                            setName = `Form Filling${suffix}`;
+                                            group.subType = 'FORM_FILLING';
+                                        } else if (group.context.includes('Table') || group.context.includes('|')) {
+                                            setName = `Table Completion${suffix}`;
+                                            group.subType = 'TABLE_COMPLETION';
+                                        } else if (group.context.includes('Map') || group.context.includes('Plan')) {
+                                            setName = `Plan/Map Completion${suffix}`;
+                                            group.subType = 'PLAN_MAP_COMPLETION';
+                                        } else {
+                                            setName = `Flexible Context${suffix}`;
+                                            group.subType = 'FLEXIBLE_CONTEXT';
+                                        }
+                                    } else {
                                         setName = `${group.type} Questions${suffix}`;
-                                }
+                                    }
                             }
 
                             return {
                                 ...group,
                                 name: setName,
-                                // ✅ ENSURE: Context được preserve
+                                // ✅ PRESERVE all critical fields
                                 context: group.context || '',
-                                // ✅ FIXED: Đảm bảo requiresContext được set đúng cho edit mode
                                 requiresContext: !!(group.context && group.context.trim()) ||
-                                    (group.type === 'FILL_IN_THE_BLANK' && ['NOTE_COMPLETION', 'FORM_FILLING', 'TABLE_COMPLETION', 'PLAN_MAP_COMPLETION', 'FLEXIBLE_CONTEXT'].includes(
-                                        // Detect subtype from context or default to FLEXIBLE_CONTEXT
-                                        group.context?.includes('Notes') ? 'NOTE_COMPLETION' :
-                                            group.context?.includes('Form') || group.context?.includes('FORM') ? 'FORM_FILLING' :
-                                                group.context?.includes('Table') || group.context?.includes('|') ? 'TABLE_COMPLETION' :
-                                                    group.context?.includes('Map') || group.context?.includes('Plan') ? 'PLAN_MAP_COMPLETION' :
-                                                        'FLEXIBLE_CONTEXT'
-                                    )),
-                                // ✅ THÊM: Subtype detection for listening
-                                subType: group.type === 'FILL_IN_THE_BLANK' && group.context ?
-                                    // Detect subtype from context content
-                                    (group.context.includes('Notes') ? 'NOTE_COMPLETION' :
-                                        group.context.includes('Form') || group.context.includes('FORM') ? 'FORM_FILLING' :
-                                            group.context.includes('Table') || group.context.includes('|') ? 'TABLE_COMPLETION' :
-                                                group.context.includes('Map') || group.context.includes('Plan') ? 'PLAN_MAP_COMPLETION' :
-                                                    'FLEXIBLE_CONTEXT') : group.type
+                                    ['NOTE_COMPLETION', 'FORM_FILLING', 'TABLE_COMPLETION', 'PLAN_MAP_COMPLETION', 'FLEXIBLE_CONTEXT'].includes(group.subType),
+                                supportsSimpleEditor: group.subType === 'TABLE_COMPLETION'
                             };
                         });
 
-                        console.log('✅ Final question sets with proper names, UI indexes, and context:', finalQuestionSets);
+                        console.log('✅ Final question sets with preserved subTypes:',
+                            finalQuestionSets.map(s => ({ name: s.name, subType: s.subType }))
+                        );
+
                         setQuestionSets(finalQuestionSets);
                     }
                 } catch (err) {
@@ -313,40 +329,7 @@ export default function CreateExamPage() {
         }
     }, [testId, isEditMode, reset]);
 
-    const debugFormDataBeforeSubmit = () => {
-        console.log('=== FORM DATA DEBUG BEFORE SUBMIT ===');
-        const formData = watch();
 
-        console.log('Questions count:', formData.questions?.length || 0);
-
-        if (formData.questions) {
-            formData.questions.forEach((q, idx) => {
-                console.log(`Question ${idx + 1}:`, {
-                    id: q.question_id,
-                    type: q.question_type,
-                    hasContext: !!(q.context && q.context.trim()),
-                    contextLength: q.context?.length || 0,
-                    contextPreview: q.context?.substring(0, 50) || 'empty',
-                    hasInstructions: !!(q.question_set_instructions && q.question_set_instructions.trim()),
-                    instructionsLength: q.question_set_instructions?.length || 0,
-                    audioId: q.audio_id,
-                    passageId: q.passage_id
-                });
-            });
-
-            // Count stats
-            const withContext = formData.questions.filter(q => q.context && q.context.trim());
-            const withoutContext = formData.questions.filter(q => !q.context || !q.context.trim());
-
-            console.log(`Summary: ${withContext.length} questions WITH context, ${withoutContext.length} questions WITHOUT context`);
-
-            if (withoutContext.length > 0) {
-                console.warn('Questions WITHOUT context:', withoutContext.map(q => q.question_id));
-            }
-        }
-
-        console.log('==========================================');
-    };
 
     useEffect(() => {
         // ✅ Restore form draft nếu có
@@ -377,22 +360,6 @@ export default function CreateExamPage() {
             }
         }
     }, [isEditMode, setValue]);
-
-    useEffect(() => {
-        if (questionSets.length > 0) {
-            console.log('=== QUESTION SETS UPDATED ===');
-            questionSets.forEach((set, idx) => {
-                console.log(`Set ${idx + 1}:`, {
-                    name: set.name,
-                    type: set.type,
-                    passageId: set.passageId,
-                    audioId: set.audioId,
-                    instructions: set.instructions || '(empty)',
-                    questionCount: set.questions.length
-                });
-            });
-        }
-    }, [questionSets]);
 
     // Thêm useEffect để debug form submit
     useEffect(() => {
@@ -601,7 +568,7 @@ export default function CreateExamPage() {
             console.log('✅ Final question sets with UI indexes and context:', sets);
             setQuestionSets(sets);
         }
-    }, [questionFields.length, questionSets.length, watch]);
+    }, [questionFields.length, questionSets.length]);
 
 // ✅ THÊM: useEffect riêng để debug khi passages thay đổi
     useEffect(() => {
@@ -1844,9 +1811,9 @@ export default function CreateExamPage() {
                             style={{ minHeight: '60px' }}
                         />
                     </label>
-                    <small style={{ color: '#666', fontSize: '12px' }}>
-                        Current value: "{set.instructions || 'EMPTY'}"
-                    </small>
+                    {/*<small style={{ color: '#666', fontSize: '12px' }}>*/}
+                    {/*    Current value: "{set.instructions || 'EMPTY'}"*/}
+                    {/*</small>*/}
                 </div>
 
                 {/* Passage selection cho READING */}
@@ -1875,18 +1842,18 @@ export default function CreateExamPage() {
                                 })}
                             </select>
                         </label>
-                        <small style={{ color: '#666', fontSize: '12px' }}>
-                            Current passage ID: {set.passageId || 'NONE'}
-                            {/* ✅ THÊM: Debug info để hiển thị mapping */}
-                            {set.passageId && (
-                                <div style={{ marginTop: '5px', fontSize: '11px', color: '#999' }}>
-                                    Debug: UI Index = {set.passageId}
-                                    {passageFields[parseInt(set.passageId) - 1] && (
-                                        `, DB ID = ${watch(`reading_passages.${parseInt(set.passageId) - 1}.id`)}`
-                                    )}
-                                </div>
-                            )}
-                        </small>
+                        {/*<small style={{ color: '#666', fontSize: '12px' }}>*/}
+                        {/*    Current passage ID: {set.passageId || 'NONE'}*/}
+                        {/*    /!* ✅ THÊM: Debug info để hiển thị mapping *!/*/}
+                        {/*    {set.passageId && (*/}
+                        {/*        <div style={{ marginTop: '5px', fontSize: '11px', color: '#999' }}>*/}
+                        {/*            Debug: UI Index = {set.passageId}*/}
+                        {/*            {passageFields[parseInt(set.passageId) - 1] && (*/}
+                        {/*                `, DB ID = ${watch(`reading_passages.${parseInt(set.passageId) - 1}.id`)}`*/}
+                        {/*            )}*/}
+                        {/*        </div>*/}
+                        {/*    )}*/}
+                        {/*</small>*/}
                     </div>
                 )}
 
@@ -1940,10 +1907,15 @@ export default function CreateExamPage() {
 
                                 {/* Nút xóa câu hỏi */}
                                 <button
-                                    className="btn-remove-question"
+                                    className="remove-btn-modern"
                                     onClick={() => removeQuestionFromSet(set.id, qIdx)}
+                                    title="Remove this question"
                                 >
-                                    <i className="icon-trash"></i> Xóa câu hỏi
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                         strokeWidth="2">
+                                        <line x1="18" y1="6" x2="6" y2="18"/>
+                                        <line x1="6" y1="6" x2="18" y2="18"/>
+                                    </svg>
                                 </button>
                             </div>
                         </div>
@@ -1974,7 +1946,6 @@ export default function CreateExamPage() {
         console.log('=== FORCE REFRESH QUESTION SETS ===');
         setQuestionSets([]); // Clear current sets
 
-        // Trigger useEffect để tái tạo question sets
         setTimeout(() => {
             console.log('Question sets cleared, should trigger useEffect...');
         }, 100);
@@ -2002,7 +1973,6 @@ export default function CreateExamPage() {
                                 <option value="LISTENING">IELTS Listening</option>
                                 <option value="SPEAKING">IELTS Speaking</option>
                                 <option value="WRITING">IELTS Writing</option>
-                                <option value="FULL">IELTS Full Test</option>
                             </select>
                         </label>
                     </div>
@@ -2554,10 +2524,6 @@ export default function CreateExamPage() {
                                 <div className="info-row">
                                     <div className="info-label">Thời gian:</div>
                                     <div className="info-value">{watch('duration_minutes')} phút</div>
-                                </div>
-                                <div className="info-row">
-                                    <div className="info-label">Điểm đạt:</div>
-                                    <div className="info-value">{watch('passing_score')}</div>
                                 </div>
                                 <div className="info-row">
                                     <div className="info-label">Trạng thái:</div>

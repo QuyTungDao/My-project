@@ -69,7 +69,7 @@ public class JwtUtils {
                 .setSubject(userPrincipal.getUsername()) // Email as subject
                 .claim("userId", userPrincipal.getId()) // ✅ Add user ID
                 .claim("email", userPrincipal.getUsername()) // ✅ Add email explicitly
-                .claim("fullName", userPrincipal.getUsername()) // ✅ Add full name
+                .claim("fullName", userPrincipal.getFullName())
                 .claim("role", roles.isEmpty() ? "STUDENT" : roles.get(0)) // ✅ Add primary role
                 .claim("authorities", roles) // ✅ Add all authorities
                 .setIssuedAt(now)
