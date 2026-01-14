@@ -10,6 +10,8 @@ export default function TestLibrary() {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeMenuId, setActiveMenuId] = useState(null);
+    const [filterType, setFilterType] = useState('ALL'); // NEW: Filter by test type
+    const [sortBy, setSortBy] = useState('newest'); // NEW: Sort option
     const navigate = useNavigate();
 
     // ✅ FIXED: Implement getPartCount function properly
@@ -277,8 +279,72 @@ export default function TestLibrary() {
                     <p className="empty-state-description">Có thể chưa có bài thi nào được thêm vào hệ thống hoặc bài thi đang bị ẩn.</p>
                 </div>
             ) : (
-                <div className="test-list">
-                    {tests.map((test, index) => (
+                <>
+                    {/* Statistics Bar */}
+                    <div className="stats-bar">
+                        <div className="stat-item">
+                            <span className="stat-number">{tests.length}</span>
+                            <span className="stat-label">Total Tests</span>
+                        </div>
+                        <div className="stat-item">
+                            <span className="stat-number">{tests.filter(t => t.testType === 'READING').length}</span>
+                            <span className="stat-label">Reading</span>
+                        </div>
+                        <div className="stat-item">
+                            <span className="stat-number">{tests.filter(t => t.testType === 'LISTENING').length}</span>
+                            <span className="stat-label">Listening</span>
+                        </div>
+                        <div className="stat-item">
+                            <span className="stat-number">{tests.filter(t => t.testType === 'WRITING').length}</span>
+                            <span className="stat-label">Writing</span>
+                        </div>
+                        <div className="stat-item">
+                            <span className="stat-number">{tests.filter(t => t.testType === 'SPEAKING').length}</span>
+                            <span className="stat-label">Speaking</span>
+                        </div>
+                    </div>
+
+                    {/* Filters and Sort */}
+                    <div className="filters-bar">
+                        <div className="filter-group">
+                            <label className="filter-label">📑 Filter by Type:</label>
+                            <div className="filter-buttons">
+                                {['ALL', 'READING', 'LISTENING', 'WRITING', 'SPEAKING'].map(type => (
+                                    <button
+                                        key={type}
+                                        className={`filter-btn ${filterType === type ? 'active' : ''}`}
+                                        onClick={() => setFilterType(type)}
+                                    >
+                                        {type === 'ALL' ? 'All' : type.charAt(0) + type.slice(1).toLowerCase()}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="sort-group">
+                            <label className="sort-label">🔄 Sort by:</label>
+                            <select
+                                className="sort-select"
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                            >
+                                <option value="newest">Newest First</option>
+                                <option value="oldest">Oldest First</option>
+                                <option value="name">Name (A-Z)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Test List */}
+                    <div className="test-list">
+                        {tests
+                            .filter(test => filterType === 'ALL' || test.testType === filterType)
+                            .sort((a, b) => {
+                                if (sortBy === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
+                                if (sortBy === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+                                if (sortBy === 'name') return a.title.localeCompare(b.title);
+                                return 0;
+                            })
+                            .map((test, index) => (
                         <div key={test.id || index} className="test-item">
 
                             {/* Test Content */}
@@ -323,8 +389,9 @@ export default function TestLibrary() {
                                 👁️ Xem chi tiết
                             </button>
                         </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                </>
             )}
         </div>
     );

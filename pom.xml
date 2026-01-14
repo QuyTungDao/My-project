@@ -141,15 +141,15 @@
                 </configuration>
             </plugin>
 
+            <!-- Frontend Build Plugin -->
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
                 <version>1.12.0</version>
                 <configuration>
-                    <!-- Add default configuration that applies to all executions -->
-                    <workingDirectory>C:/Users/Admin/View/project</workingDirectory>
-                    <nodeVersion>v16.20.0</nodeVersion> <!-- Add Node.js version -->
-                    <npmVersion>8.19.4</npmVersion> <!-- Add npm version -->
+                    <workingDirectory>${project.basedir}/View/project</workingDirectory>
+                    <nodeVersion>v16.20.0</nodeVersion>
+                    <npmVersion>8.19.4</npmVersion>
                 </configuration>
                 <executions>
                     <execution>
@@ -179,6 +179,7 @@
                 </executions>
             </plugin>
 
+            <!-- Copy Frontend Build to Spring Boot Static Resources -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
@@ -192,7 +193,7 @@
                         <configuration>
                             <target>
                                 <copy todir="${project.build.directory}/classes/static">
-                                    <fileset dir="C:/Users/Admin/View/project/build/static" includes="**/*"/>
+                                    <fileset dir="${project.basedir}/View/project/build" includes="**/*"/>
                                 </copy>
                             </target>
                         </configuration>

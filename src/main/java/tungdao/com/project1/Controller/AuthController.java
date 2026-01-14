@@ -33,9 +33,9 @@ public class AuthController {
     private final JwtUtils jwtUtils;
 
     public AuthController(AuthenticationManager authManager,
-                          UserRepository userRepo,
-                          PasswordEncoder encoder,
-                          JwtUtils jwtUtils) {
+            UserRepository userRepo,
+            PasswordEncoder encoder,
+            JwtUtils jwtUtils) {
         this.authManager = authManager;
         this.userRepo = userRepo;
         this.encoder = encoder;
@@ -68,8 +68,7 @@ public class AuthController {
             Authentication auth;
             try {
                 auth = authManager.authenticate(
-                        new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
-                );
+                        new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword()));
                 System.out.println("✅ Xác thực thành công cho: " + req.getEmail());
             } catch (BadCredentialsException e) {
                 System.out.println("❌ Xác thực thất bại: Sai mật khẩu cho user " + req.getEmail());
@@ -92,10 +91,9 @@ public class AuthController {
             JwtResponse body = new JwtResponse(
                     jwt,
                     userDetails.getId(),
-                    userDetails.getUsername(),   // chính là email
+                    userDetails.getUsername(), // chính là email
                     user.getFullName(),
-                    roles
-            );
+                    roles);
 
             // ✅ UPDATE: Set last login time
             user.setLastLogin(LocalDateTime.now());
@@ -114,7 +112,8 @@ public class AuthController {
         } catch (Exception e) {
             System.err.println("❌ Lỗi đăng nhập: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Đăng nhập thất bại: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Đăng nhập thất bại: " + e.getMessage());
         }
     }
 
@@ -167,7 +166,8 @@ public class AuthController {
 
             } catch (IllegalArgumentException e) {
                 System.err.println("❌ Không thể chuyển đổi role: " + roleUpperCase);
-                System.err.println("Các giá trị hợp lệ của UserRole là: " + java.util.Arrays.toString(UserRole.values()));
+                System.err
+                        .println("Các giá trị hợp lệ của UserRole là: " + java.util.Arrays.toString(UserRole.values()));
                 return ResponseEntity.badRequest().body("Invalid role: " + req.getRole() +
                         ". Valid roles are: STUDENT, TEACHER, ADMIN (case insensitive)");
             }
@@ -246,36 +246,6 @@ public class AuthController {
             System.err.println("❌ Error getting current user: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error getting user info: " + e.getMessage());
-        }
-    }
-
-    // Endpoint kiểm tra mật khẩu - chỉ sử dụng cho debug
-    @PostMapping("/check-password")
-    public ResponseEntity<?> checkPassword(@RequestBody LoginRequest req) {
-        try {
-            Optional<User> userOpt = userRepo.findByEmail(req.getEmail());
-            if (userOpt.isEmpty()) {
-                return ResponseEntity.badRequest().body("User không tồn tại");
-            }
-
-            User user = userOpt.get();
-
-            // Kiểm tra mật khẩu
-            boolean matches = encoder.matches(req.getPassword(), user.getPassword());
-
-            // Thông tin debug
-            System.out.println("Email: " + req.getEmail());
-            System.out.println("Raw password: " + req.getPassword());
-            System.out.println("Encoded password in DB: " + user.getPassword());
-            System.out.println("Password matches: " + matches);
-            System.out.println("User role: " + user.getRole()); // ✅ Added role info
-
-            return ResponseEntity.ok(
-                    "Kết quả kiểm tra mật khẩu: " + matches +
-                            " (Role: " + user.getRole() + ")"
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
         }
     }
 

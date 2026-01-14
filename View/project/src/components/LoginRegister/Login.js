@@ -1,208 +1,213 @@
-import React, {useEffect, useState} from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { login, checkPassword } from "../../api";
-import './Login.css';
+import React, { useEffect, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { login } from "../../api";
+import "./Login.css";
 
 export default function Login() {
-    const [input, setInput] = useState({ email: '', password: '' });
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [token, setToken] = useState(''); // Thêm state để hiển thị token debug
-    const [showToken, setShowToken] = useState(false); // Toggle hiển thị token
-    const [debugMessage, setDebugMessage] = useState(''); // Thêm state để hiển thị thông tin debug
-    const navigate = useNavigate();
+  const [input, setInput] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const navigate = useNavigate();
 
-    // Kiểm tra xem người dùng đã đăng nhập chưa khi component mount
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            console.log("User already has a token, redirecting to home page");
-            navigate('/');
-        }
-    }, [navigate]);
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/");
+    }
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
-        setLoading(true);
-        setDebugMessage('');
+    // Load saved email if remember me was checked
+    const savedEmail = localStorage.getItem("savedEmail");
+    if (savedEmail) {
+      setInput((prev) => ({ ...prev, email: savedEmail }));
+      setRememberMe(true);
+    }
+  }, [navigate]);
 
-        try {
-            // Kiểm tra dữ liệu nhập vào
-            if (!input.email || !input.password) {
-                setError('Vui lòng nhập đầy đủ email và mật khẩu');
-                setLoading(false);
-                return;
-            }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-            console.log("Đang gửi dữ liệu đăng nhập:", input);
-            const response = await login(input);
-            console.log("Phản hồi đăng nhập:", response);
+    try {
+      if (!input.email || !input.password) {
+        setError("Vui lòng nhập đầy đủ email và mật khẩu");
+        setLoading(false);
+        return;
+      }
 
-            if (response && (response.token || response.accessToken)) {
-                const token = response.token || response.accessToken;
+      const response = await login(input);
 
-                // Đảm bảo token không có tiền tố "Bearer "
-                const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
+      if (response && (response.token || response.accessToken)) {
+        const token = response.token || response.accessToken;
+        const cleanToken = token.startsWith("Bearer ")
+          ? token.substring(7)
+          : token;
 
-                // Lưu token vào localStorage
-                localStorage.setItem('token', cleanToken);
-                console.log("Token đã lưu (độ dài):", cleanToken.length);
-                setToken(cleanToken); // Lưu token vào state để hiển thị debug
+        localStorage.setItem("token", cleanToken);
 
-                // Thông báo đăng nhập thành công
-                alert('Đăng nhập thành công!');
-
-                // Kích hoạt sự kiện storage để cập nhật trạng thái auth trong App.js
-                window.dispatchEvent(new Event('storage'));
-
-                // Chuyển hướng sau khi đăng nhập thành công
-                // Sử dụng timeout nhỏ để đảm bảo localStorage được cập nhật trước khi chuyển trang
-                setTimeout(() => {
-                    navigate('/');
-                }, 100);
-
-            } else {
-                console.error("Không tìm thấy token trong phản hồi:", response);
-                setError('Định dạng phản hồi không đúng. Vui lòng thử lại.');
-            }
-        } catch (err) {
-            console.error("Lỗi đăng nhập:", err);
-            setError(err.message || 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Hàm xóa token và đăng nhập lại
-    const handleClearTokens = () => {
-        localStorage.removeItem('token');
-        alert('Đã xóa token. Vui lòng đăng nhập lại.');
-        setInput({ email: '', password: '' });
-        setToken('');
-        setDebugMessage('');
-    };
-
-    // Hàm kiểm tra mật khẩu (chỉ dùng cho debug)
-    const handleCheckPassword = async () => {
-        if (!input.email || !input.password) {
-            setDebugMessage('Vui lòng nhập đầy đủ email và mật khẩu để kiểm tra');
-            return;
+        // Save email if remember me is checked
+        if (rememberMe) {
+          localStorage.setItem("savedEmail", input.email);
+        } else {
+          localStorage.removeItem("savedEmail");
         }
 
-        try {
-            setDebugMessage('Đang kiểm tra mật khẩu...');
-            const result = await checkPassword(input);
-            setDebugMessage('Kết quả kiểm tra: ' + JSON.stringify(result));
-        } catch (err) {
-            setDebugMessage('Lỗi kiểm tra mật khẩu: ' + (err.message || err));
-        }
-    };
+        window.dispatchEvent(new Event("storage"));
 
-    return (
-        <div className="login-container">
-            <div className="login-card">
-                <h2 className="login-title">Đăng nhập</h2>
+        setTimeout(() => {
+          navigate("/");
+        }, 100);
+      } else {
+        setError("Định dạng phản hồi không đúng. Vui lòng thử lại.");
+      }
+    } catch (err) {
+      console.error("Lỗi đăng nhập:", err);
+      setError(
+        err.message ||
+          "Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
-                <form onSubmit={handleSubmit} className="login-form">
-                    <div className="login-input-group">
-                        <input
-                            type="email"
-                            placeholder="Địa chỉ email"
-                            value={input.email}
-                            onChange={(e) => setInput({ ...input, email: e.target.value })}
-                            className="login-input"
-                            required
-                        />
-                    </div>
-
-                    <div className="login-input-group">
-                        <input
-                            type="password"
-                            placeholder="Mật khẩu"
-                            value={input.password}
-                            onChange={(e) => setInput({ ...input, password: e.target.value })}
-                            className="login-input"
-                            required
-                        />
-                    </div>
-
-                    {error && (
-                        <div className="login-error">
-                            {error}
-                        </div>
-                    )}
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="login-button"
-                    >
-                        {loading ? (
-                            <span className="login-loading-text">
-                                <span className="login-loading-spinner"></span>
-                                Đang đăng nhập...
-                            </span>
-                        ) : (
-                            'Đăng nhập'
-                        )}
-                    </button>
-                </form>
-
-                <p className="login-register-link">
-                    Chưa có tài khoản? <Link to="/register" className="login-link">Đăng ký ngay</Link>
-                </p>
-
-                {/*/!* Debug Section *!/*/}
-                {/*<div className="login-debug-section">*/}
-                {/*    <button*/}
-                {/*        onClick={handleClearTokens}*/}
-                {/*        className="login-debug-button login-clear-button"*/}
-                {/*        type="button"*/}
-                {/*    >*/}
-                {/*        🗑️ Xóa token và đăng nhập lại*/}
-                {/*    </button>*/}
-
-                {/*    <button*/}
-                {/*        onClick={() => setShowToken(!showToken)}*/}
-                {/*        className="login-debug-button login-toggle-button"*/}
-                {/*        type="button"*/}
-                {/*    >*/}
-                {/*        {showToken ? '🙈 Ẩn thông tin token' : '👁️ Hiển thị thông tin token'}*/}
-                {/*    </button>*/}
-
-                {/*    /!*<button*!/*/}
-                {/*    /!*    onClick={handleCheckPassword}*!/*/}
-                {/*    /!*    className="login-debug-button login-check-button"*!/*/}
-                {/*    /!*    type="button"*!/*/}
-                {/*    /!*>*!/*/}
-                {/*    /!*    🔍 Kiểm tra mật khẩu (Debug)*!/*/}
-                {/*    /!*</button>*!/*/}
-
-                {/*    /!*{showToken && token && (*!/*/}
-                {/*    /!*    <div className="login-token-display">*!/*/}
-                {/*    /!*        <div className="login-token-label">Current Token:</div>*!/*/}
-                {/*    /!*        <div className="login-token-value">{token}</div>*!/*/}
-                {/*    /!*    </div>*!/*/}
-                {/*    /!*)}*!/*/}
-
-                {/*    /!*{showToken && (*!/*/}
-                {/*    /!*    <div className="login-token-display">*!/*/}
-                {/*    /!*        <div className="login-token-label">Token từ localStorage:</div>*!/*/}
-                {/*    /!*        <div className="login-token-value">*!/*/}
-                {/*    /!*            {localStorage.getItem('token') || "Không có token"}*!/*/}
-                {/*    /!*        </div>*!/*/}
-                {/*    /!*    </div>*!/*/}
-                {/*    /!*)}*!/*/}
-
-                {/*    /!*{debugMessage && (*!/*/}
-                {/*    /!*    <div className="login-debug-message">*!/*/}
-                {/*    /!*        <div className="login-debug-label">Thông tin debug:</div>*!/*/}
-                {/*    /!*        <div className="login-debug-text">{debugMessage}</div>*!/*/}
-                {/*    /!*    </div>*!/*/}
-                {/*    /!*)}*!/*/}
-                {/*</div>*/}
-            </div>
+  return (
+    <div className="login-container">
+      <div className="login-card">
+        <div className="login-header">
+          <h2 className="login-title">Welcome Back</h2>
+          <p className="login-subtitle">Continue your learning journey.</p>
         </div>
-    );
+
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="login-input-group">
+            <div className="input-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <polyline points="3 7 12 13 21 7" />
+              </svg>
+            </div>
+            <input
+              type="email"
+              placeholder="Email"
+              value={input.email}
+              onChange={(e) => setInput({ ...input, email: e.target.value })}
+              className="login-input"
+              required
+            />
+          </div>
+
+          <div className="login-input-group">
+            <div className="input-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={input.password}
+              onChange={(e) => setInput({ ...input, password: e.target.value })}
+              className="login-input"
+              required
+            />
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label="Toggle password visibility"
+            >
+              {showPassword ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
+          </div>
+
+          <div className="login-options">
+            <label className="remember-me">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
+              <span>Remember me</span>
+            </label>
+          </div>
+
+          {error && <div className="login-error">{error}</div>}
+
+          <button type="submit" disabled={loading} className="login-button">
+            {loading ? (
+              <span className="login-loading-text">
+                <span className="login-loading-spinner"></span>
+                Signing in...
+              </span>
+            ) : (
+              "Sign In"
+            )}
+          </button>
+        </form>
+
+        <div className="login-footer">
+          <p className="login-register-link">
+            Don't have an account?{" "}
+            <Link to="/register" className="login-link">
+              Sign up
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
